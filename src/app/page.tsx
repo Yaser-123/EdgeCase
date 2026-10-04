@@ -579,8 +579,18 @@ export default function Home() {
                                 <div className="grid md:grid-cols-2 gap-4">
                                   {f.resourceUrl && (
                                     <div className="bg-secondary/50 rounded-lg p-4 font-mono text-sm border border-border md:col-span-2">
-                                      <div className="text-foreground/50 text-xs mb-2 uppercase tracking-wider font-sans font-semibold">Resource URL</div>
-                                      <code className="text-blue-300 break-all">{f.resourceUrl}</code>
+                                      <div className="text-foreground/50 text-xs mb-2 uppercase tracking-wider font-sans font-semibold">
+                                        Resource URL{Array.isArray(f.resourceUrl) && f.resourceUrl.length > 1 ? `s (${f.resourceUrl.length})` : ''}
+                                      </div>
+                                      {Array.isArray(f.resourceUrl) ? (
+                                        <div className="max-h-32 overflow-y-auto custom-scrollbar flex flex-col gap-1">
+                                          {f.resourceUrl.map((url, idx) => (
+                                            <code key={idx} className="text-blue-300 break-all block">{url}</code>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <code className="text-blue-300 break-all">{f.resourceUrl}</code>
+                                      )}
                                     </div>
                                   )}
                                   
@@ -595,6 +605,11 @@ export default function Home() {
                                     <div className="bg-secondary/50 rounded-lg p-4 font-mono text-sm border border-border">
                                       <div className="text-foreground/50 text-xs mb-2 uppercase tracking-wider font-sans font-semibold">Status / Error</div>
                                       <code className="text-red-300 break-all">{f.status}</code>
+                                      {f.status === "SIMULATED_FAILURE" && (
+                                        <div className={`mt-2 text-xs font-sans font-bold px-2 py-1 rounded block w-fit ${f.applicationErrorOccurred ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+                                          {f.applicationErrorOccurred ? "Application Crashed" : "Application Survived"}
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                 </div>

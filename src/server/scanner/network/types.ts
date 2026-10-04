@@ -3,7 +3,7 @@ export type NetworkConfidence = "certain" | "firm" | "tentative";
 
 export interface NetworkFinding {
   scenarioName: string;
-  resourceUrl?: string;
+  resourceUrl?: string | string[];
   resourceType?: string;
   status?: string | number;
   timing?: number;
@@ -11,6 +11,7 @@ export interface NetworkFinding {
   severity: NetworkSeverity;
   confidence: NetworkConfidence;
   remediation: string;
+  applicationErrorOccurred?: boolean;
 }
 
 export interface NetworkResult {

@@ -50,6 +50,48 @@ export async function runNetworkResilienceTests(page: Page, url: string, deadlin
      // Let's rely on the scenario itself cleaning up its specific handler using `route.fallback()` logic above.
   } catch (err) {}
 
+  const groupedFindings: NetworkFinding[] = [];
+  
+  // Group SIMULATED_FAILUREs by scenarioName and resourceType
+  const simulatedFailures = allFindings.filter(f => f.status === "SIMULATED_FAILURE");
+  const genuineFindings = allFindings.filter(f => f.status !== "SIMULATED_FAILURE");
+  
+  // Check if any genuine finding in 'failed-resources' is an uncaught page error
+  const hasPageError = genuineFindings.some(f => 
+    f.scenarioName === "failed-resources" && f.description.includes("Uncaught page error")
+  );
+
+  const simulatedGroups = new Map<string, NetworkFinding>();
+  
+  for (const f of simulatedFailures) {
+    const key = `${f.scenarioName}-${f.resourceType}`;
+    if (!simulatedGroups.has(key)) {
+      simulatedGroups.set(key, {
+        ...f,
+        resourceUrl: [f.resourceUrl as string],
+        applicationErrorOccurred: hasPageError,
+        severity: hasPageError ? "high" : "info",
+        description: `Simulated network failure applied to ${f.resourceType} resources.`
+      });
+    } else {
+      const group = simulatedGroups.get(key)!;
+      if (f.resourceUrl) {
+        (group.resourceUrl as string[]).push(f.resourceUrl as string);
+      }
+    }
+  }
+
+  // Deduplicate other identical findings to avoid repetitive cards
+  const deduplicatedGenuine = new Map<string, NetworkFinding>();
+  for (const f of genuineFindings) {
+    const key = `${f.scenarioName}-${f.description}-${f.status}`;
+    if (!deduplicatedGenuine.has(key)) {
+      deduplicatedGenuine.set(key, f);
+    }
+  }
+
+  groupedFindings.push(...simulatedGroups.values(), ...deduplicatedGenuine.values());
+
   const severityCounts: Record<NetworkSeverity, number> = {
     critical: 0,
     high: 0,
@@ -58,16 +100,22 @@ export async function runNetworkResilienceTests(page: Page, url: string, deadlin
     info: 0,
   };
 
-  for (const finding of allFindings) {
+  // Do not count 'info' level simulated failures as actual "application findings" in totalFindings if it didn't cause an error
+  let actualFindingsCount = 0;
+
+  for (const finding of groupedFindings) {
     severityCounts[finding.severity]++;
+    if (finding.status !== "SIMULATED_FAILURE" || finding.applicationErrorOccurred) {
+      actualFindingsCount++;
+    }
   }
 
   return {
     totalScenarios: scenarios.length,
     scenariosCompleted,
     isPartial,
-    totalFindings: allFindings.length,
+    totalFindings: actualFindingsCount,
     severityCounts,
-    findings: allFindings,
+    findings: groupedFindings,
   };
 }

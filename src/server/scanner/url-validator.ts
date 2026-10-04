@@ -1,8 +1,12 @@
 import { promises as dns } from "dns";
 import * as ipaddr from "ipaddr.js";
 
-// Safe wrapper to check if an IP is private/reserved
 export function isSafeIp(ipString: string): boolean {
+  // Allow local/private IP testing in development environment
+  if (process.env.NODE_ENV === "development") {
+    return true;
+  }
+
   try {
     const ip = ipaddr.parse(ipString);
 
@@ -64,8 +68,10 @@ export async function validateAndNormalizeUrl(inputUrl: string): Promise<string>
   const hostname = urlObj.hostname;
   
   // Basic string match for common localhosts to fail early
-  if (hostname === "localhost" || hostname.endsWith(".local") || hostname.endsWith(".internal")) {
-    throw new Error("Internal hostnames are not allowed");
+  if (process.env.NODE_ENV !== "development") {
+    if (hostname === "localhost" || hostname.endsWith(".local") || hostname.endsWith(".internal")) {
+      throw new Error("Internal hostnames are not allowed");
+    }
   }
 
   // Resolve all DNS A and AAAA records to catch DNS rebinding attempts 
