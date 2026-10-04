@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { 
   Activity, 
   ShieldCheck, 
@@ -80,6 +81,7 @@ function RemediationBlock({ fixAssistant }: { fixAssistant?: any }) {
             </div>
             <div className="text-sm text-foreground/80 overflow-x-auto custom-scrollbar mt-3">
               <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
                 components={{
                   p: ({node, ...props}) => <p className="mb-4 last:mb-0" {...props} />,
                   strong: ({node, ...props}) => <strong className="font-semibold text-blue-300" {...props} />,
@@ -149,38 +151,197 @@ export default function Home() {
 
   const handleExportReport = () => {
     if (!result) return;
+    
+    // Helper to render findings
+    const renderFindings = (title: string, findings: any[], renderer: (f: any) => string) => {
+      if (!findings || findings.length === 0) return '';
+      return `
+        <div class="module">
+          <h2>${title}</h2>
+          <div class="findings-list">
+            ${findings.map(renderer).join('')}
+          </div>
+        </div>
+      `;
+    };
+
+    const parseSimpleMarkdown = (text: string) => {
+      if (!text) return '';
+      return text
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/`([^`]+)`/g, '<span class="inline-code">$1</span>')
+        .replace(/\n/g, '<br/>');
+    };
+
+    const renderFixAssistant = (fix?: any) => {
+      if (!fix) return '';
+      return `
+        <div class="fix-assistant">
+          <div class="fix-grid">
+            <div class="fix-box">
+              <h5>Why it matters</h5>
+              <p>${fix.whyItMatters}</p>
+            </div>
+            <div class="fix-box">
+              <h5>Recommended Fix</h5>
+              <p>${fix.recommendedFix}</p>
+            </div>
+          </div>
+          <div class="fix-prompt">
+            <h5>AI Prompt</h5>
+            <div class="parsed-markdown">${parseSimpleMarkdown(fix.prompt)}</div>
+          </div>
+        </div>
+      `;
+    };
+
     const html = `
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <title>EdgeCase Scan Report: ${result.metadata?.url}</title>
   <style>
-    body { font-family: system-ui, sans-serif; line-height: 1.5; color: #333; max-width: 900px; margin: 0 auto; padding: 2rem; }
-    h1, h2, h3 { color: #111; }
-    .header { border-bottom: 2px solid #eee; padding-bottom: 1rem; margin-bottom: 2rem; }
-    .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
-    .summary-card { background: #f9f9f9; padding: 1rem; border-radius: 8px; border: 1px solid #ddd; text-align: center; }
-    .summary-card.danger { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
-    .summary-card.success { background: #dcfce7; border-color: #86efac; color: #166534; }
-    .finding { border: 1px solid #ddd; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
-    .finding h4 { margin-top: 0; }
-    .severity { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; }
-    .severity.high, .severity.critical { background: #fee2e2; color: #ef4444; }
-    .severity.medium { background: #fef3c7; color: #f59e0b; }
-    .severity.low, .severity.info { background: #e0f2fe; color: #3b82f6; }
-    pre { background: #f4f4f4; padding: 1rem; border-radius: 4px; overflow-x: auto; font-size: 0.875rem; }
+    :root {
+      --bg: #09090b;
+      --fg: #fafafa;
+      --card: #09090b;
+      --border: #27272a;
+      --secondary: #27272a;
+      --accent: #3b82f6;
+    }
+    body { 
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+      line-height: 1.6; 
+      color: var(--fg); 
+      background-color: var(--bg);
+      max-width: 1000px; 
+      margin: 0 auto; 
+      padding: 2rem; 
+      color-scheme: dark;
+    }
+    h1, h2, h3, h4, h5 { color: var(--fg); margin-top: 0; }
+    .header { 
+      border-bottom: 1px solid var(--border); 
+      padding-bottom: 2rem; 
+      margin-bottom: 2rem; 
+      text-align: center;
+    }
+    .header h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .header p { color: #a1a1aa; font-size: 1.1rem; }
+    
+    .summary { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+      gap: 1rem; 
+      margin-bottom: 3rem; 
+    }
+    .summary-card { 
+      background: var(--card); 
+      padding: 1.5rem; 
+      border-radius: 12px; 
+      border: 1px solid var(--border); 
+      text-align: center; 
+    }
+    .summary-card h3 { font-size: 2rem; margin-bottom: 0.25rem; }
+    .summary-card p { margin: 0; color: #a1a1aa; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.05em; font-weight: bold; }
+    
+    .danger { border-color: #7f1d1d; background: rgba(127, 29, 29, 0.1); }
+    .danger h3 { color: #f87171; }
+    .success { border-color: #14532d; background: rgba(20, 83, 45, 0.1); }
+    .success h3 { color: #4ade80; }
+    
+    .module { margin-bottom: 4rem; }
+    .module h2 { 
+      font-size: 1.5rem; 
+      border-bottom: 1px solid var(--border); 
+      padding-bottom: 0.5rem; 
+      margin-bottom: 1.5rem; 
+    }
+    
+    .finding { 
+      background: var(--card);
+      border: 1px solid var(--border); 
+      padding: 1.5rem; 
+      border-radius: 12px; 
+      margin-bottom: 1.5rem; 
+    }
+    .finding-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+    .finding-header h4 { font-size: 1.25rem; margin-bottom: 0.25rem; }
+    
+    .badge { 
+      display: inline-block; 
+      padding: 0.25rem 0.5rem; 
+      border-radius: 4px; 
+      font-size: 0.75rem; 
+      font-weight: bold; 
+      text-transform: uppercase; 
+    }
+    .badge.critical, .badge.high { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+    .badge.medium { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+    .badge.low, .badge.info { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+    
+    .code-block { 
+      background: rgba(0,0,0,0.5); 
+      padding: 1rem; 
+      border-radius: 6px; 
+      border: 1px solid var(--border);
+      overflow-x: auto; 
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.875rem;
+      color: #93c5fd;
+      margin-top: 1rem;
+    }
+    
+    .fix-assistant {
+      margin-top: 1.5rem;
+      border-top: 1px dashed var(--border);
+      padding-top: 1.5rem;
+    }
+    .fix-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .fix-box {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+    .fix-box h5 { margin-bottom: 0.5rem; color: #a1a1aa; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
+    .fix-box p { margin: 0; font-size: 0.9rem; }
+    
+    .fix-prompt {
+      background: rgba(0,0,0,0.5);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+    .fix-prompt h5 { color: #60a5fa; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+    .parsed-markdown { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.9rem; color: #e2e8f0; line-height: 1.6; }
+    .parsed-markdown strong { font-weight: 600; color: #93c5fd; }
+    .inline-code { background: rgba(255,255,255,0.1); padding: 0.1rem 0.3rem; border-radius: 4px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; color: #bfdbfe; font-size: 0.85rem; }
+    
+    @media (max-width: 768px) {
+      .fix-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
   <div class="header">
-    <h1>EdgeCase Quality & Security Report</h1>
-    <p><strong>Target URL:</strong> ${result.metadata?.url}</p>
-    <p><strong>Scan Date:</strong> ${new Date().toLocaleString()}</p>
-    <p><strong>Duration:</strong> ${result.timing ? (result.timing.duration / 1000).toFixed(2) : "--"}s</p>
+    <h1>EdgeCase Report</h1>
+    <p>Target: <strong>${result.metadata?.url}</strong> | Date: ${new Date().toLocaleString()}</p>
   </div>
   
-  <h2>Unified Summary</h2>
   <div class="summary">
     <div class="summary-card ${result.accessibility?.violationsCount ? 'danger' : 'success'}">
       <h3>${result.accessibility?.violationsCount || 0}</h3>
@@ -188,7 +349,7 @@ export default function Home() {
     </div>
     <div class="summary-card ${result.stress?.totalFindings ? 'danger' : 'success'}">
       <h3>${result.stress?.totalFindings || 0}</h3>
-      <p>Stress Issues</p>
+      <p>UI Stress Issues</p>
     </div>
     <div class="summary-card ${result.security?.totalFindings ? 'danger' : 'success'}">
       <h3>${result.security?.totalFindings || 0}</h3>
@@ -200,10 +361,67 @@ export default function Home() {
     </div>
   </div>
 
-  <h2>Details</h2>
-  <p>To view detailed findings and evidence, please review the results in the EdgeCase dashboard.</p>
+  ${renderFindings('Accessibility Audit', result.accessibility?.violations || [], (v) => `
+    <div class="finding">
+      <div class="finding-header">
+        <div>
+          <h4>${v.description}</h4>
+          <span style="color: #a1a1aa; font-size: 0.85rem;">Rule: ${v.id}</span>
+        </div>
+        <span class="badge ${v.impact}">${v.impact}</span>
+      </div>
+      <div class="code-block">${(v.html || '').replaceAll('<', '&lt;').replaceAll('>', '&gt;')}</div>
+      ${renderFixAssistant(v.fixAssistant)}
+    </div>
+  `)}
+
+  ${renderFindings('UI Stress Testing', result.stress?.findings || [], (f) => `
+    <div class="finding">
+      <div class="finding-header">
+        <div>
+          <h4>${f.issueType}</h4>
+          <span style="color: #a1a1aa; font-size: 0.85rem; text-transform: uppercase;">Scenario: ${f.scenarioName}</span>
+        </div>
+        <span class="badge ${f.severity || 'medium'}">${f.severity || 'medium'}</span>
+      </div>
+      <p>${f.description}</p>
+      ${f.selector ? `<div class="code-block">Selector: ${f.selector}</div>` : ''}
+      ${renderFixAssistant(f.fixAssistant)}
+    </div>
+  `)}
+
+  ${renderFindings('Security Posture', result.security?.findings || [], (f) => `
+    <div class="finding">
+      <div class="finding-header">
+        <div>
+          <h4>${f.checkName}</h4>
+          <span style="color: #a1a1aa; font-size: 0.85rem; text-transform: uppercase;">Category: ${f.category}</span>
+        </div>
+        <span class="badge ${f.severity}">${f.severity}</span>
+      </div>
+      <p>${f.description}</p>
+      ${f.evidence ? `<div class="code-block">${f.evidence.replaceAll('<', '&lt;').replaceAll('>', '&gt;')}</div>` : ''}
+      ${renderFixAssistant(f.fixAssistant)}
+    </div>
+  `)}
+
+  ${renderFindings('Network Resilience', result.network?.findings || [], (f) => `
+    <div class="finding">
+      <div class="finding-header">
+        <div>
+          <h4>${f.scenarioName.replace('-', ' ').toUpperCase()}</h4>
+        </div>
+        <span class="badge ${f.severity || 'medium'}">${f.severity || 'medium'}</span>
+      </div>
+      <p>${f.description}</p>
+      ${f.resourceUrl ? `<div class="code-block">Resource: ${Array.isArray(f.resourceUrl) ? f.resourceUrl.join(', ') : f.resourceUrl}</div>` : ''}
+      ${renderFixAssistant(f.fixAssistant)}
+    </div>
+  `)}
+
 </body>
 </html>`;
+    
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
