@@ -1,3 +1,5 @@
+import { StressResult } from "./stress/types";
+
 export interface ScanResult {
   status: "success" | "error";
   metadata?: {
@@ -10,6 +12,7 @@ export interface ScanResult {
     duration: number;
   };
   accessibility?: AccessibilityResult;
+  stress?: StressResult;
   screenshot?: string; // base64 data URI
   error?: string;
 }

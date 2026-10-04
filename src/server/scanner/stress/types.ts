@@ -20,6 +20,9 @@ export interface StressScenario {
 }
 
 export interface StressResult {
+  scenariosCompleted: number;
+  totalScenarios: number;
+  isPartial: boolean;
   totalFindings: number;
   findings: StressFinding[];
 }

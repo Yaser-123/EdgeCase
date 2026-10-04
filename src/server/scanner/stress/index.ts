@@ -3,15 +3,20 @@ import { StressResult, StressFinding } from "./types";
 import { SCENARIO_IDS, applyScenario, revertScenarios } from "./scenarios";
 import { detectLayoutIssues } from "./layout-detector";
 
-export async function runStressTests(page: Page): Promise<StressResult> {
+export async function runStressTests(page: Page, deadlineMs: number): Promise<StressResult> {
   const allFindings: StressFinding[] = [];
+  let completed = 0;
+  let isPartial = false;
 
   // Wait for page to be stable before taking baseline
   await page.waitForTimeout(1000);
-
-  // Take a baseline snapshot? We rely on revertScenarios which uses the DOM node backup.
   
   for (const scenarioId of SCENARIO_IDS) {
+    if (Date.now() > deadlineMs) {
+      isPartial = true;
+      break;
+    }
+
     try {
       // Apply synthetic stress content
       await applyScenario(page, scenarioId);
@@ -22,6 +27,7 @@ export async function runStressTests(page: Page): Promise<StressResult> {
       // Detect layout breakages
       const findings = await detectLayoutIssues(page, scenarioId);
       allFindings.push(...findings);
+      completed++;
 
       // Restore baseline
       await revertScenarios(page);
@@ -33,6 +39,9 @@ export async function runStressTests(page: Page): Promise<StressResult> {
   }
 
   return {
+    scenariosCompleted: completed,
+    totalScenarios: SCENARIO_IDS.length,
+    isPartial,
     totalFindings: allFindings.length,
     findings: allFindings
   };
