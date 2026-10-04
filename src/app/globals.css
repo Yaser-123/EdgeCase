@@ -1,30 +1,30 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #0b0f19;
-  --color-foreground: #e2e8f0;
+  --color-background: #09090b; /* zinc-950 */
+  --color-foreground: #fafafa; /* zinc-50 */
   
-  --color-card: #131a28;
-  --color-card-foreground: #e2e8f0;
+  --color-card: #09090b; /* zinc-950 */
+  --color-card-foreground: #fafafa;
   
-  --color-primary: #3b82f6; /* Electric blue */
-  --color-primary-foreground: #ffffff;
+  --color-primary: #fafafa; /* pure white for primary actions */
+  --color-primary-foreground: #18181b; /* zinc-900 */
   
-  --color-secondary: #1e293b;
-  --color-secondary-foreground: #f8fafc;
+  --color-secondary: #27272a; /* zinc-800 */
+  --color-secondary-foreground: #fafafa;
   
-  --color-accent: #0ea5e9;
-  --color-accent-foreground: #ffffff;
+  --color-accent: #27272a;
+  --color-accent-foreground: #fafafa;
   
-  --color-destructive: #ef4444;
-  --color-destructive-foreground: #f8fafc;
+  --color-destructive: #7f1d1d; /* muted red for destructive actions */
+  --color-destructive-foreground: #fef2f2;
   
-  --color-border: #1e293b;
-  --color-input: #1e293b;
-  --color-ring: #3b82f6;
+  --color-border: #27272a; /* zinc-800 */
+  --color-input: #27272a;
+  --color-ring: #fafafa;
 
-  --radius-lg: 0.75rem;
-  --radius-md: 0.5rem;
+  --radius-lg: 0.5rem;
+  --radius-md: 0.375rem;
   --radius-sm: 0.25rem;
 }
 

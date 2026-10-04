@@ -20,7 +20,9 @@ import {
   Copy,
   Bot,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Zap,
+  WifiOff
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -275,26 +277,30 @@ export default function Home() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="py-24 px-4 relative overflow-hidden">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-primary/20 blur-[120px] rounded-full pointer-events-none" />
+        <section className="relative overflow-hidden border-b border-border bg-background pt-32 pb-24">
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
           
-          <div className="container mx-auto max-w-4xl text-center relative z-10">
-            <h1 className="text-5xl sm:text-6xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-br from-white to-white/60">
+          <div className="container mx-auto px-4 max-w-5xl text-center relative z-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-secondary/30 text-xs font-semibold uppercase tracking-widest text-foreground/70 mb-8">
+              <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
+              Enterprise Grade Scanner
+            </div>
+            
+            <h1 className="text-5xl sm:text-7xl font-extrabold tracking-tighter mb-8 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/50">
               Break your web app <br className="hidden sm:block" /> before your users do.
             </h1>
-            <p className="text-lg sm:text-xl text-foreground/70 mb-10 max-w-2xl mx-auto">
-              EdgeCase automatically tests your application against extreme UI stress, accessibility violations, security misconfigurations, and network failures.
+            <p className="text-lg sm:text-xl text-foreground/60 mb-12 max-w-2xl mx-auto font-medium leading-relaxed">
+              EdgeCase autonomously stress-tests your UI, audits accessibility, uncovers passive security flaws, and simulates network duress in a single pass.
             </p>
 
             <form onSubmit={handleRunTest} className="max-w-xl mx-auto relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-primary to-accent rounded-lg blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200" />
-              <div className="relative flex flex-col sm:flex-row gap-3 bg-card p-2 rounded-lg border border-border">
+              <div className="relative flex flex-col sm:flex-row gap-2 bg-background p-1.5 rounded-xl border border-border shadow-2xl transition-all focus-within:border-foreground/30 focus-within:ring-4 focus-within:ring-foreground/5">
                 <div className="relative flex-1 flex items-center">
-                  <Globe className="absolute left-3 w-5 h-5 text-foreground/40" />
+                  <Globe className="absolute left-4 w-5 h-5 text-foreground/40" />
                   <Input 
                     type="text" 
                     placeholder="https://your-webapp.com" 
-                    className="pl-10 border-0 bg-transparent h-12 focus-visible:ring-0 focus-visible:ring-offset-0 text-base"
+                    className="pl-12 border-0 bg-transparent h-14 focus-visible:ring-0 focus-visible:ring-offset-0 text-base shadow-none"
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     disabled={isScanning}
@@ -302,16 +308,16 @@ export default function Home() {
                 </div>
                 <Button 
                   type="submit" 
-                  className="h-12 px-8 font-semibold text-base whitespace-nowrap"
+                  className="h-14 px-8 font-semibold text-base whitespace-nowrap bg-foreground text-background hover:bg-foreground/90 rounded-lg"
                   disabled={isScanning}
                 >
                   {isScanning ? (
                     <span className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-background/30 border-t-background rounded-full animate-spin" />
                       Scanning...
                     </span>
                   ) : (
-                    <>Run Stress Test <ArrowRight className="w-4 h-4 ml-2" /></>
+                    <>Run Analysis <ArrowRight className="w-4 h-4 ml-2" /></>
                   )}
                 </Button>
               </div>
@@ -334,7 +340,7 @@ export default function Home() {
         {/* Results Section */}
         <section id="results" className="py-20 border-t border-border bg-card/30">
           <div className="container mx-auto px-4 max-w-6xl">
-            {result ? (
+            {result && (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
                   <div>
@@ -798,11 +804,53 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="bg-background border border-border rounded-xl p-12 border-dashed flex flex-col items-center justify-center text-foreground/50 max-w-4xl mx-auto">
-                <ShieldCheck className="w-12 h-12 mb-4 opacity-20" />
-                <p>No active scan data available.</p>
-                <p className="text-sm mt-2">Enter a URL above to generate your first quality report.</p>
+            )}
+            
+            {!result && (
+              <div className="py-12">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto px-4">
+                  
+                  <div className="bg-background border border-border p-6 rounded-xl hover:border-foreground/20 transition-colors">
+                    <div className="w-12 h-12 bg-secondary/50 border border-border rounded-lg flex items-center justify-center mb-6">
+                      <Zap className="w-6 h-6 text-foreground" />
+                    </div>
+                    <h3 className="text-xl font-bold mb-3">UI Stress Engine</h3>
+                    <p className="text-sm text-foreground/60 leading-relaxed">
+                      Injects massive datasets, unexpected languages, and dynamic layout shifts to ensure your application never breaks under pressure.
+                    </p>
+                  </div>
+
+                  <div className="bg-background border border-border p-6 rounded-xl hover:border-foreground/20 transition-colors">
+                    <div className="w-12 h-12 bg-secondary/50 border border-border rounded-lg flex items-center justify-center mb-6">
+                      <Accessibility className="w-6 h-6 text-foreground" />
+                    </div>
+                    <h3 className="text-xl font-bold mb-3">Accessibility</h3>
+                    <p className="text-sm text-foreground/60 leading-relaxed">
+                      Deep WCAG compliance audits verify your ARIA labels, contrast ratios, and semantic DOM structure for a universally usable web.
+                    </p>
+                  </div>
+
+                  <div className="bg-background border border-border p-6 rounded-xl hover:border-foreground/20 transition-colors">
+                    <div className="w-12 h-12 bg-secondary/50 border border-border rounded-lg flex items-center justify-center mb-6">
+                      <ShieldCheck className="w-6 h-6 text-foreground" />
+                    </div>
+                    <h3 className="text-xl font-bold mb-3">Security Posture</h3>
+                    <p className="text-sm text-foreground/60 leading-relaxed">
+                      Analyzes HTTP headers, CSP policies, cookie attributes, and potential data exposures through passive, non-intrusive auditing.
+                    </p>
+                  </div>
+
+                  <div className="bg-background border border-border p-6 rounded-xl hover:border-foreground/20 transition-colors">
+                    <div className="w-12 h-12 bg-secondary/50 border border-border rounded-lg flex items-center justify-center mb-6">
+                      <WifiOff className="w-6 h-6 text-foreground" />
+                    </div>
+                    <h3 className="text-xl font-bold mb-3">Network Duress</h3>
+                    <p className="text-sm text-foreground/60 leading-relaxed">
+                      Simulates high latency, dropped API calls, and offline states to validate your application&apos;s error boundaries and retry logic.
+                    </p>
+                  </div>
+                  
+                </div>
               </div>
             )}
           </div>
