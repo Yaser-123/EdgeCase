@@ -1,27 +1,47 @@
 import { promises as dns } from "dns";
+import * as ipaddr from "ipaddr.js";
 
-const isPrivateIp = (ip: string) => {
-  const parts = ip.split(".").map((part) => parseInt(part, 10));
+// Safe wrapper to check if an IP is private/reserved
+export function isSafeIp(ipString: string): boolean {
+  try {
+    const ip = ipaddr.parse(ipString);
 
-  // Loopback (127.0.0.0/8)
-  if (parts[0] === 127) return true;
-  // Private A (10.0.0.0/8)
-  if (parts[0] === 10) return true;
-  // Private B (172.16.0.0/12)
-  if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
-  // Private C (192.168.0.0/16)
-  if (parts[0] === 192 && parts[1] === 168) return true;
-  // Link-local (169.254.0.0/16)
-  if (parts[0] === 169 && parts[1] === 254) return true;
+    // For IPv4 and IPv4-mapped IPv6
+    if (ip.kind() === "ipv4" || (ip.kind() === "ipv6" && (ip as ipaddr.IPv6).isIPv4MappedAddress())) {
+      const v4 = ip.kind() === "ipv4" ? ip as ipaddr.IPv4 : (ip as ipaddr.IPv6).toIPv4Address();
+      const range = v4.range();
+      
+      // Allow only explicitly unicast public IP spaces
+      // 'unicast' is the normal public space in ipaddr.js
+      if (range !== "unicast") {
+        return false;
+      }
+      return true;
+    }
 
-  return false;
-};
+    // For IPv6
+    if (ip.kind() === "ipv6") {
+      const v6 = ip as ipaddr.IPv6;
+      const range = v6.range();
+      
+      // Allow only explicitly unicast public IP spaces
+      if (range !== "unicast") {
+        return false;
+      }
+      return true;
+    }
+
+    return false;
+  } catch (err) {
+    // If we can't parse it, it's unsafe
+    return false;
+  }
+}
 
 export async function validateAndNormalizeUrl(inputUrl: string): Promise<string> {
   let urlObj: URL;
   
   try {
-    // Add https if missing to allow easy parsing
     const urlStr = inputUrl.startsWith("http://") || inputUrl.startsWith("https://") 
       ? inputUrl 
       : `https://${inputUrl}`;
@@ -36,20 +56,43 @@ export async function validateAndNormalizeUrl(inputUrl: string): Promise<string>
     throw new Error("Only HTTP and HTTPS protocols are supported");
   }
 
-  // Reject explicit localhost or private TLDs
+  // Reject all ports except 80 and 443
+  if (urlObj.port && urlObj.port !== "80" && urlObj.port !== "443") {
+    throw new Error("Only ports 80 and 443 are allowed");
+  }
+
   const hostname = urlObj.hostname;
+  
+  // Basic string match for common localhosts to fail early
   if (hostname === "localhost" || hostname.endsWith(".local") || hostname.endsWith(".internal")) {
     throw new Error("Internal hostnames are not allowed");
   }
 
-  // Resolve DNS to check against SSRF
+  // Resolve all DNS A and AAAA records to catch DNS rebinding attempts 
+  // where one public and one private IP are returned.
   try {
-    const lookupResult = await dns.lookup(hostname);
-    if (isPrivateIp(lookupResult.address)) {
-      throw new Error("Target resolves to a private or reserved IP address");
+    let addresses: string[] = [];
+    
+    // Check if hostname is already a raw IP
+    if (ipaddr.isValid(hostname)) {
+      addresses = [hostname];
+    } else {
+      // Resolve both IPv4 and IPv6
+      const results = await dns.lookup(hostname, { all: true });
+      addresses = results.map(r => r.address);
+    }
+
+    if (addresses.length === 0) {
+      throw new Error(`Failed to resolve hostname: ${hostname}`);
+    }
+
+    for (const address of addresses) {
+      if (!isSafeIp(address)) {
+        throw new Error(`Target resolves to a private or reserved IP address (${address})`);
+      }
     }
   } catch (err: any) {
-    if (err.message === "Target resolves to a private or reserved IP address") {
+    if (err.message.includes("private or reserved IP address")) {
       throw err;
     }
     throw new Error(`Failed to resolve hostname: ${hostname}`);

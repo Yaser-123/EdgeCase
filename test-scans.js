@@ -1,5 +1,3 @@
-
-
 async function runTest(url, name) {
   console.log(`\n--- Test: ${name} (${url}) ---`);
   try {
@@ -17,8 +15,7 @@ async function runTest(url, name) {
       console.log(`Title: ${data.metadata?.title}`);
       console.log(`Load time: ${data.timing?.duration}ms`);
       console.log(`Violations: ${data.accessibility?.violationsCount}, Passes: ${data.accessibility?.passesCount}`);
-      // Trim screenshot
-      console.log(`Screenshot: ${data.screenshot?.substring(0, 30)}...`);
+      console.log(`Screenshot Length: ${data.screenshot?.length} chars`);
     }
   } catch (err) {
     console.error("Script Error:", err.message);
@@ -26,11 +23,14 @@ async function runTest(url, name) {
 }
 
 async function runAll() {
-  await runTest("https://example.com", "Simple Public Website");
-  await runTest("https://news.ycombinator.com", "Website with Accessibility Violations");
-  await runTest("not-a-url", "Invalid URL");
-  await runTest("https://this-does-not-exist.example.org", "Unreachable Website");
-  await runTest("https://httpstat.us/200?sleep=40000", "Timeout Website");
+  await runTest("http://127.0.0.1", "IPv4 loopback URL");
+  await runTest("http://[::1]", "IPv6 loopback URL");
+  await runTest("http://10.0.0.1", "Private IPv4 URL");
+  await runTest("http://example.com:22", "Unsafe port");
+  await runTest("https://example.com", "Public URL");
+  await runTest("https://example.com/edgecase-test-redirect", "Redirect to a prohibited destination");
+  await runTest("https://example.com/edgecase-test-subresource", "Page attempting to request a private-network resource");
+  await runTest("https://example.com/edgecase-test-timeout", "Deterministic timeout");
 }
 
 runAll();
