@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stress Fixture</title>
+<style>
+  body {
+    font-family: sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: #f0f0f0;
+  }
+  
+  /* 1. Ordinary responsive layout (should NOT be flagged) */
+  .responsive-box {
+    width: 100%;
+    max-width: 600px;
+    background: white;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-sizing: border-box;
+  }
+
+  /* 2. Long unbreakable text (will cause overflow when stressed with 'long-text' or 'long-username') */
+  .unbreakable {
+    width: 300px;
+    background: #ffcccc;
+    padding: 10px;
+    white-space: nowrap; /* Forces text to not wrap, breaking the layout when string is long */
+    margin-bottom: 20px;
+  }
+
+  /* 3. Overflowing fixed-width container */
+  .fixed-overflow {
+    width: 800px; /* If viewport is < 800, this causes horizontal page overflow */
+    background: #ccffcc;
+    padding: 10px;
+    margin-bottom: 20px;
+  }
+
+  /* 4. A clipped heading */
+  .clipped-heading {
+    width: 200px;
+    height: 30px;
+    overflow: hidden;
+    background: #ccccff;
+    margin-bottom: 20px;
+  }
+  
+  .clipped-heading h1 {
+    margin: 0;
+    font-size: 24px;
+    /* When stressed, this will definitely overflow its 200x30 container */
+  }
+
+  /* 5. Overlapping elements */
+  .overlap-container {
+    position: relative;
+    height: 100px;
+    background: #ffffcc;
+    margin-bottom: 20px;
+  }
+  
+  .overlap-1 {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 200px;
+    height: 50px;
+    background: rgba(255, 0, 0, 0.5);
+    z-index: 10;
+  }
+  
+  .overlap-2 {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    width: 200px;
+    height: 50px;
+    background: rgba(0, 0, 255, 0.5);
+    z-index: 5;
+  }
+</style>
+</head>
+<body>
+
+  <div class="responsive-box">
+    <p>This is an ordinary responsive layout. It has width: 100% and max-width. It should handle long text gracefully by wrapping, unless we force something weird.</p>
+  </div>
+
+  <div class="unbreakable">
+    ShortText
+  </div>
+
+  <div class="fixed-overflow">
+    This box is explicitly 800px wide. If you test on a narrower screen, or if it extends past the right edge, it should be flagged.
+  </div>
+
+  <div class="clipped-heading">
+    <h1>Title</h1>
+  </div>
+
+  <div class="overlap-container">
+    <div class="overlap-1">Overlap 1</div>
+    <div class="overlap-2">Overlap 2</div>
+  </div>
+
+</body>
+</html>
