@@ -1,4 +1,5 @@
-import { Browser, BrowserContext, Page } from "playwright-core";
+import { Browser, BrowserContext, Page, chromium as playwrightCoreChromium } from "playwright-core";
+import sparticuzChromium from "@sparticuz/chromium-min";
 
 // Lock state: false | true | "fatal"
 let isScanning: boolean | "fatal" = false;
@@ -24,8 +25,8 @@ export async function withBrowser<T>(
       const isVercel = process.env.VERCEL === "1" || process.env.VERCEL_ENV;
       
       if (isVercel) {
-        const chromium = (await import("@sparticuz/chromium-min")).default;
-        const playwright = await import("playwright-core");
+        const chromium = sparticuzChromium;
+        const playwright = require("playwright-core");
         
         const executablePath = await chromium.executablePath(
           "https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar"
@@ -37,7 +38,7 @@ export async function withBrowser<T>(
           headless: true,
         });
       } else {
-        const playwright = await import("playwright");
+        const playwright = require("playwright");
         browser = await playwright.chromium.launch({
           headless: true,
           args: [
@@ -48,6 +49,8 @@ export async function withBrowser<T>(
           ],
         });
       }
+      
+      if (!browser) throw new Error("Failed to launch browser");
 
       context = await browser.newContext({
         viewport: { width: 1280, height: 800 },
