@@ -38,29 +38,60 @@ export async function runStressTests(page: Page, deadlineMs: number): Promise<St
     }
   }
 
-  // Group repetitive overlap findings
+  // Group findings by scenario and issueType
   const groupedFindings: StressFinding[] = [];
-  const overlapMap = new Map<string, StressFinding & { count: number }>();
+  const groups = new Map<string, StressFinding>();
 
   for (const finding of allFindings) {
-    if (finding.suspected && finding.description.includes("overlapping or obscured by")) {
-      const key = `${finding.scenarioName}-${finding.description}`;
-      if (overlapMap.has(key)) {
-        overlapMap.get(key)!.count++;
-      } else {
-        overlapMap.set(key, { ...finding, count: 1 });
+    // If it's a document level issue, just add it directly (no need to group children)
+    if (finding.issueType === "Document Horizontal Overflow") {
+      const key = `${finding.scenarioName}-${finding.issueType}`;
+      if (!groups.has(key)) {
+        groups.set(key, { ...finding, affectedElements: [] });
       }
+      continue;
+    }
+
+    // Group element-level issues
+    const key = `${finding.scenarioName}-${finding.issueType}`;
+    if (!groups.has(key)) {
+      groups.set(key, {
+        ...finding,
+        description: `Multiple elements affected by ${finding.issueType}`,
+        selector: `Multiple elements (e.g., ${finding.selector})`,
+        affectedElements: [{
+          selector: finding.selector || "",
+          text: finding.text || "",
+          boundingRect: finding.boundingRect!,
+          computedStyles: finding.computedStyles || {}
+        }]
+      });
     } else {
-      groupedFindings.push(finding);
+      const group = groups.get(key)!;
+      // Prevent unbounded growth by limiting stored evidence to 10
+      if (group.affectedElements!.length < 10) {
+        group.affectedElements!.push({
+          selector: finding.selector || "",
+          text: finding.text || "",
+          boundingRect: finding.boundingRect!,
+          computedStyles: finding.computedStyles || {}
+        });
+      }
+      group.description = `${group.affectedElements!.length}${group.affectedElements!.length >= 10 ? '+' : ''} elements affected by ${finding.issueType}`;
     }
   }
 
-  for (const grouped of overlapMap.values()) {
-    if (grouped.count > 1) {
-      grouped.description = `${grouped.count} elements are ${grouped.description.replace('Element is ', '')}`;
-      grouped.selector = `Multiple elements (e.g., ${grouped.selector})`;
+  for (const group of groups.values()) {
+    if (group.affectedElements && group.affectedElements.length === 1 && group.issueType !== "Document Horizontal Overflow") {
+      // Revert to single finding description if only one element
+      const el = group.affectedElements[0];
+      group.selector = el.selector;
+      group.text = el.text;
+      group.boundingRect = el.boundingRect;
+      group.computedStyles = el.computedStyles;
+      group.description = allFindings.find(f => f.issueType === group.issueType && f.selector === el.selector)?.description || group.description;
     }
-    groupedFindings.push(grouped);
+    groupedFindings.push(group);
   }
 
   return {

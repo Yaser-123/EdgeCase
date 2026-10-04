@@ -473,9 +473,12 @@ export default function Home() {
                           {result.stress.findings.map((f, i) => (
                             <div key={i} className="p-6 hover:bg-secondary/20 transition-colors">
                               <div className="flex items-start justify-between gap-4 mb-3">
-                                <h4 className="font-medium text-lg text-purple-300">
-                                  {f.scenarioName.replace('-', ' ').toUpperCase()} SCENARIO
-                                </h4>
+                                <div>
+                                  <h4 className="font-medium text-lg text-purple-300">
+                                    {f.scenarioName.replace('-', ' ').toUpperCase()} SCENARIO
+                                  </h4>
+                                  {f.issueType && <div className="text-sm font-semibold text-foreground/80 mt-1">{f.issueType}</div>}
+                                </div>
                                 <div className="flex items-center gap-2">
                                   {f.suspected && (
                                     <span className="text-xs px-2 py-1 rounded font-bold uppercase tracking-wider bg-secondary text-foreground/60">
@@ -483,7 +486,9 @@ export default function Home() {
                                     </span>
                                   )}
                                   <span className={`text-xs px-2 py-1 rounded font-bold uppercase tracking-wider ${
-                                    f.severity === 'high' ? 'bg-red-500/20 text-red-400' : 'bg-orange-500/20 text-orange-400'
+                                    f.severity === 'high' ? 'bg-red-500/20 text-red-400' : 
+                                    f.severity === 'medium' ? 'bg-orange-500/20 text-orange-400' :
+                                    'bg-yellow-500/20 text-yellow-400'
                                   }`}>
                                     {f.severity}
                                   </span>
@@ -491,26 +496,60 @@ export default function Home() {
                               </div>
                               <p className="text-foreground/80 mb-4">{f.description}</p>
                               
-                              <div className="grid md:grid-cols-2 gap-4">
-                                <div className="bg-secondary/50 rounded-lg p-4 font-mono text-sm border border-border">
-                                  <div className="text-foreground/50 text-xs mb-2 uppercase tracking-wider font-sans font-semibold">Selector</div>
-                                  <code className="text-blue-300 break-all">{f.selector}</code>
+                              {f.affectedElements && f.affectedElements.length > 0 ? (
+                                <div className="space-y-4 max-h-64 overflow-y-auto custom-scrollbar p-2 bg-black/20 rounded-xl border border-border/50">
+                                  {f.affectedElements.map((el, elIdx) => (
+                                    <div key={elIdx} className="bg-secondary/30 rounded-lg p-4 border border-border">
+                                      <div className="grid md:grid-cols-2 gap-4">
+                                        <div className="font-mono text-sm">
+                                          <div className="text-foreground/50 text-xs mb-2 uppercase tracking-wider font-sans font-semibold">Selector</div>
+                                          <code className="text-blue-300 break-all">{el.selector}</code>
+                                        </div>
+                                        {Object.keys(el.computedStyles).length > 0 && (
+                                          <div className="font-mono text-sm">
+                                            <div className="text-foreground/50 text-xs mb-2 uppercase tracking-wider font-sans font-semibold">Computed Styles</div>
+                                            <pre className="text-green-300/80 whitespace-pre-wrap text-xs">
+                                              {Object.entries(el.computedStyles).map(([k, v]) => `${k}: ${v};\n`).join('')}
+                                            </pre>
+                                          </div>
+                                        )}
+                                      </div>
+                                      {el.text && (
+                                        <div className="mt-4 bg-background/50 rounded p-3 text-sm italic text-foreground/60 break-all">
+                                          "{el.text}"
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
                                 </div>
-                                
-                                {Object.keys(f.computedStyles).length > 0 && (
-                                  <div className="bg-secondary/50 rounded-lg p-4 font-mono text-sm border border-border">
-                                    <div className="text-foreground/50 text-xs mb-2 uppercase tracking-wider font-sans font-semibold">Computed Styles</div>
-                                    <pre className="text-green-300/80 whitespace-pre-wrap text-xs">
-                                      {Object.entries(f.computedStyles).map(([k, v]) => `${k}: ${v};\n`).join('')}
-                                    </pre>
-                                  </div>
-                                )}
-                              </div>
-                              
-                              {f.text && (
-                                <div className="mt-4 bg-secondary/30 rounded-lg p-4 border border-border text-sm italic text-foreground/60 break-all">
-                                  "{f.text}"
-                                </div>
+                              ) : (
+                                <>
+                                  {(f.selector || (f.computedStyles && Object.keys(f.computedStyles).length > 0)) && (
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                      {f.selector && (
+                                        <div className="bg-secondary/50 rounded-lg p-4 font-mono text-sm border border-border">
+                                          <div className="text-foreground/50 text-xs mb-2 uppercase tracking-wider font-sans font-semibold">Selector</div>
+                                          <code className="text-blue-300 break-all">{f.selector}</code>
+                                        </div>
+                                      )}
+                                      
+                                      {f.computedStyles && Object.keys(f.computedStyles).length > 0 && (
+                                        <div className="bg-secondary/50 rounded-lg p-4 font-mono text-sm border border-border">
+                                          <div className="text-foreground/50 text-xs mb-2 uppercase tracking-wider font-sans font-semibold">Computed Styles</div>
+                                          <pre className="text-green-300/80 whitespace-pre-wrap text-xs">
+                                            {Object.entries(f.computedStyles).map(([k, v]) => `${k}: ${v};\n`).join('')}
+                                          </pre>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                  
+                                  {f.text && (
+                                    <div className="mt-4 bg-secondary/30 rounded-lg p-4 border border-border text-sm italic text-foreground/60 break-all">
+                                      "{f.text}"
+                                    </div>
+                                  )}
+                                </>
                               )}
                             </div>
                           ))}

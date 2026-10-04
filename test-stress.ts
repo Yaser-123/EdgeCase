@@ -37,7 +37,7 @@ async function run() {
     }
 
     // Verify intentional ellipsis wasn't flagged
-    const hasEllipsisFalsePositive = results.findings.some(f => f.selector.includes("ellipsis"));
+    const hasEllipsisFalsePositive = results.findings.some(f => f.selector && f.selector.includes("ellipsis"));
     if (hasEllipsisFalsePositive) {
        console.error("❌ Intentional ellipsis was incorrectly flagged!");
     } else {

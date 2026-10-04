@@ -2,14 +2,24 @@ export type Severity = "high" | "medium" | "low";
 
 export interface StressFinding {
   scenarioName: string;
-  viewport: { width: number; height: number };
-  selector: string;
-  text: string;
-  boundingRect: { x: number; y: number; width: number; height: number };
-  computedStyles: Record<string, string>;
+  issueType: string;
   description: string;
   severity: Severity;
   suspected: boolean; // True if we are uncertain
+  
+  // Legacy fields (kept for compatibility)
+  selector?: string;
+  text?: string;
+  boundingRect?: { x: number; y: number; width: number; height: number };
+  computedStyles?: Record<string, string>;
+  
+  // Grouped elements evidence
+  affectedElements?: {
+    selector: string;
+    text: string;
+    boundingRect: { x: number; y: number; width: number; height: number };
+    computedStyles: Record<string, string>;
+  }[];
 }
 
 export interface StressScenario {
