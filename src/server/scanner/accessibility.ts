@@ -17,7 +17,7 @@ export async function runAccessibilityAudit(page: Page): Promise<AccessibilityRe
         help: violation.help,
         helpUrl: violation.helpUrl,
         nodes: violation.nodes.map((node) => ({
-          target: node.target,
+          target: node.target as unknown as string[],
           html: node.html,
           failureSummary: node.failureSummary,
         })),

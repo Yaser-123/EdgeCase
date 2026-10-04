@@ -39,17 +39,18 @@ export async function runSlowNetwork(page: Page, url: string): Promise<NetworkMo
   
   const findings = await monitor.stop();
   
-  if (Date.now() - start > 8000) {
+  const duration = Date.now() - start;
+  if (duration > 8000) {
     findings.push({
       scenarioName: "slow-network",
-      description: "Page load exceeded 8 seconds under slow network conditions (3G).",
+      description: `Page load took ${(duration / 1000).toFixed(2)}s under simulated 3G conditions. EdgeCase heuristically flags loads over 8 seconds as a resilience risk.`,
       severity: "medium",
       confidence: "firm",
       remediation: "Optimize resource sizes and prioritize critical rendering path."
     });
   }
   
-  return { findings, durationMs: Date.now() - start };
+  return { findings, durationMs: duration };
 }
 
 export async function runHighLatency(page: Page, url: string): Promise<NetworkMonitorResult> {

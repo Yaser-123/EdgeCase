@@ -13,7 +13,9 @@ import {
   CheckCircle2,
   Clock,
   Layout,
-  ExternalLink
+  ExternalLink,
+  Download,
+  AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,6 +67,72 @@ export default function Home() {
     } finally {
       setIsScanning(false);
     }
+  };
+
+  const handleExportReport = () => {
+    if (!result) return;
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>EdgeCase Scan Report: ${result.metadata?.url}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; line-height: 1.5; color: #333; max-width: 900px; margin: 0 auto; padding: 2rem; }
+    h1, h2, h3 { color: #111; }
+    .header { border-bottom: 2px solid #eee; padding-bottom: 1rem; margin-bottom: 2rem; }
+    .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .summary-card { background: #f9f9f9; padding: 1rem; border-radius: 8px; border: 1px solid #ddd; text-align: center; }
+    .summary-card.danger { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+    .summary-card.success { background: #dcfce7; border-color: #86efac; color: #166534; }
+    .finding { border: 1px solid #ddd; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+    .finding h4 { margin-top: 0; }
+    .severity { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; }
+    .severity.high, .severity.critical { background: #fee2e2; color: #ef4444; }
+    .severity.medium { background: #fef3c7; color: #f59e0b; }
+    .severity.low, .severity.info { background: #e0f2fe; color: #3b82f6; }
+    pre { background: #f4f4f4; padding: 1rem; border-radius: 4px; overflow-x: auto; font-size: 0.875rem; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>EdgeCase Quality & Security Report</h1>
+    <p><strong>Target URL:</strong> ${result.metadata?.url}</p>
+    <p><strong>Scan Date:</strong> ${new Date().toLocaleString()}</p>
+    <p><strong>Duration:</strong> ${result.timing ? (result.timing.duration / 1000).toFixed(2) : "--"}s</p>
+  </div>
+  
+  <h2>Unified Summary</h2>
+  <div class="summary">
+    <div class="summary-card ${result.accessibility?.violationsCount ? 'danger' : 'success'}">
+      <h3>${result.accessibility?.violationsCount || 0}</h3>
+      <p>A11y Violations</p>
+    </div>
+    <div class="summary-card ${result.stress?.totalFindings ? 'danger' : 'success'}">
+      <h3>${result.stress?.totalFindings || 0}</h3>
+      <p>Stress Issues</p>
+    </div>
+    <div class="summary-card ${result.security?.totalFindings ? 'danger' : 'success'}">
+      <h3>${result.security?.totalFindings || 0}</h3>
+      <p>Security Findings</p>
+    </div>
+    <div class="summary-card ${result.network?.totalFindings ? 'danger' : 'success'}">
+      <h3>${result.network?.totalFindings || 0}</h3>
+      <p>Network Errors</p>
+    </div>
+  </div>
+
+  <h2>Details</h2>
+  <p>To view detailed findings and evidence, please review the results in the EdgeCase dashboard.</p>
+</body>
+</html>`;
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `edgecase-report-${new Date().getTime()}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -165,9 +233,45 @@ export default function Home() {
                         <Clock className="w-3 h-3" /> {result.timing ? (result.timing.duration / 1000).toFixed(2) : "--"}s
                       </span>
                     </div>
+                    <Button onClick={handleExportReport} variant="outline" className="ml-4 gap-2 border-primary/20 hover:bg-primary/10 hover:text-primary">
+                      <Download className="w-4 h-4" /> Export Report
+                    </Button>
                   </div>
                 </div>
 
+                {/* Unified Scan Summary */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                  <div className={`p-4 rounded-xl border ${result.accessibility?.violationsCount ? 'bg-red-500/10 border-red-500/20' : 'bg-green-500/10 border-green-500/20'}`}>
+                    <div className="flex items-center gap-2 text-sm text-foreground/70 mb-2">
+                      <Accessibility className="w-4 h-4" /> Accessibility
+                    </div>
+                    <div className="text-3xl font-bold">{result.accessibility?.violationsCount || 0}</div>
+                    <div className="text-xs text-foreground/50 uppercase font-semibold mt-1">Violations</div>
+                  </div>
+                  <div className={`p-4 rounded-xl border ${result.stress?.totalFindings ? 'bg-purple-500/10 border-purple-500/20' : 'bg-green-500/10 border-green-500/20'}`}>
+                    <div className="flex items-center gap-2 text-sm text-foreground/70 mb-2">
+                      <MonitorOff className="w-4 h-4" /> UI Stress
+                    </div>
+                    <div className="text-3xl font-bold">{result.stress?.totalFindings || 0}</div>
+                    <div className="text-xs text-foreground/50 uppercase font-semibold mt-1">Layout Issues</div>
+                  </div>
+                  <div className={`p-4 rounded-xl border ${result.security?.totalFindings ? 'bg-blue-500/10 border-blue-500/20' : 'bg-green-500/10 border-green-500/20'}`}>
+                    <div className="flex items-center gap-2 text-sm text-foreground/70 mb-2">
+                      <ShieldCheck className="w-4 h-4" /> Security
+                    </div>
+                    <div className="text-3xl font-bold">{result.security?.totalFindings || 0}</div>
+                    <div className="text-xs text-foreground/50 uppercase font-semibold mt-1">Passive Findings</div>
+                  </div>
+                  <div className={`p-4 rounded-xl border ${result.network?.totalFindings ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-green-500/10 border-green-500/20'}`}>
+                    <div className="flex items-center gap-2 text-sm text-foreground/70 mb-2">
+                      <Activity className="w-4 h-4" /> Network
+                    </div>
+                    <div className="text-3xl font-bold">{result.network?.totalFindings || 0}</div>
+                    <div className="text-xs text-foreground/50 uppercase font-semibold mt-1">Simulated Errors</div>
+                  </div>
+                </div>
+
+                {/* Modules Grid */}
                 <div className="grid lg:grid-cols-3 gap-8">
                   {/* Left Column: Summary & Accessibility */}
                   <div className="lg:col-span-2 space-y-8">
@@ -193,7 +297,7 @@ export default function Home() {
                         </div>
                       </div>
                       
-                      <div className="p-0">
+                      <div className="p-0 max-h-[600px] overflow-y-auto custom-scrollbar">
                         {result.accessibility?.violations && result.accessibility.violations.length > 0 ? (
                           <div className="divide-y divide-border">
                             {result.accessibility.violations.map((v, i) => (
@@ -363,7 +467,7 @@ export default function Home() {
                       </div>
                     )}
                     
-                    <div className="p-0">
+                    <div className="p-0 max-h-[600px] overflow-y-auto custom-scrollbar">
                       {result.stress?.findings && result.stress.findings.length > 0 ? (
                         <div className="divide-y divide-border">
                           {result.stress.findings.map((f, i) => (
@@ -454,55 +558,55 @@ export default function Home() {
                         <div className="divide-y divide-border">
                           {result.network.findings.map((f, i) => (
                             <div key={i} className="p-6 hover:bg-secondary/20 transition-colors">
-                              <div className="flex items-start justify-between gap-4 mb-3">
-                                <h4 className="font-medium text-lg text-emerald-300">
-                                  {f.scenarioName.replace('-', ' ').toUpperCase()} SCENARIO
-                                </h4>
-                                <div className="flex items-center gap-2">
-                                  <span className={`text-xs px-2 py-1 rounded font-bold uppercase tracking-wider ${
-                                    f.severity === 'critical' ? 'bg-red-600/20 text-red-500' :
-                                    f.severity === 'high' ? 'bg-red-500/20 text-red-400' : 
-                                    f.severity === 'medium' ? 'bg-orange-500/20 text-orange-400' :
-                                    f.severity === 'low' ? 'bg-yellow-500/20 text-yellow-400' :
-                                    'bg-emerald-500/20 text-emerald-400'
-                                  }`}>
-                                    {f.severity}
-                                  </span>
-                                </div>
-                              </div>
-                              <p className="text-foreground/80 mb-4">{f.description}</p>
-                              
-                              <div className="grid md:grid-cols-2 gap-4">
-                                {f.resourceUrl && (
-                                  <div className="bg-secondary/50 rounded-lg p-4 font-mono text-sm border border-border md:col-span-2">
-                                    <div className="text-foreground/50 text-xs mb-2 uppercase tracking-wider font-sans font-semibold">Resource URL</div>
-                                    <code className="text-blue-300 break-all">{f.resourceUrl}</code>
+                                <div className="flex items-start justify-between gap-4 mb-3">
+                                  <h4 className="font-medium text-lg text-emerald-300">
+                                    {f.scenarioName.replace('-', ' ').toUpperCase()} SCENARIO
+                                  </h4>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-xs px-2 py-1 rounded font-bold uppercase tracking-wider ${
+                                      f.severity === 'critical' ? 'bg-red-600/20 text-red-500' :
+                                      f.severity === 'high' ? 'bg-red-500/20 text-red-400' : 
+                                      f.severity === 'medium' ? 'bg-orange-500/20 text-orange-400' :
+                                      f.severity === 'low' ? 'bg-yellow-500/20 text-yellow-400' :
+                                      'bg-emerald-500/20 text-emerald-400'
+                                    }`}>
+                                      {f.severity}
+                                    </span>
                                   </div>
-                                )}
+                                </div>
+                                <p className="text-foreground/80 mb-4">{f.description}</p>
                                 
-                                {f.resourceType && (
-                                  <div className="bg-secondary/50 rounded-lg p-4 font-mono text-sm border border-border">
-                                    <div className="text-foreground/50 text-xs mb-2 uppercase tracking-wider font-sans font-semibold">Type</div>
-                                    <code className="text-emerald-300 break-all">{f.resourceType}</code>
-                                  </div>
-                                )}
+                                <div className="grid md:grid-cols-2 gap-4">
+                                  {f.resourceUrl && (
+                                    <div className="bg-secondary/50 rounded-lg p-4 font-mono text-sm border border-border md:col-span-2">
+                                      <div className="text-foreground/50 text-xs mb-2 uppercase tracking-wider font-sans font-semibold">Resource URL</div>
+                                      <code className="text-blue-300 break-all">{f.resourceUrl}</code>
+                                    </div>
+                                  )}
+                                  
+                                  {f.resourceType && (
+                                    <div className="bg-secondary/50 rounded-lg p-4 font-mono text-sm border border-border">
+                                      <div className="text-foreground/50 text-xs mb-2 uppercase tracking-wider font-sans font-semibold">Type</div>
+                                      <code className="text-emerald-300 break-all">{f.resourceType}</code>
+                                    </div>
+                                  )}
 
-                                {f.status && (
-                                  <div className="bg-secondary/50 rounded-lg p-4 font-mono text-sm border border-border">
-                                    <div className="text-foreground/50 text-xs mb-2 uppercase tracking-wider font-sans font-semibold">Status / Error</div>
-                                    <code className="text-red-300 break-all">{f.status}</code>
+                                  {f.status && (
+                                    <div className="bg-secondary/50 rounded-lg p-4 font-mono text-sm border border-border">
+                                      <div className="text-foreground/50 text-xs mb-2 uppercase tracking-wider font-sans font-semibold">Status / Error</div>
+                                      <code className="text-red-300 break-all">{f.status}</code>
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {f.remediation && (
+                                  <div className="mt-4 bg-secondary/30 rounded-lg p-4 border border-border text-sm text-foreground/80">
+                                    <strong>Remediation:</strong> {f.remediation}
                                   </div>
                                 )}
                               </div>
-                              
-                              {f.remediation && (
-                                <div className="mt-4 bg-secondary/30 rounded-lg p-4 border border-border text-sm text-foreground/80">
-                                  <strong>Remediation:</strong> {f.remediation}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
+                            ))}
+                          </div>
                       ) : (
                         <div className="p-12 text-center text-foreground/50">
                           <CheckCircle2 className="w-12 h-12 text-emerald-500/50 mx-auto mb-4" />

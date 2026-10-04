@@ -32,7 +32,9 @@ export async function checkCookies(context: BrowserContext, url: string): Promis
       findings.push({
         checkName: "HttpOnly Flag Missing",
         category: "cookie-security",
-        description: `Cookie '${cookie.name}' lacks the HttpOnly flag, making it accessible to client-side scripts (XSS risk).`,
+        description: isLikelySession 
+          ? `Cookie '${cookie.name}' lacks the HttpOnly flag. Heuristic analysis suggests this may be an authentication cookie, making it a high-risk XSS target.`
+          : `Cookie '${cookie.name}' lacks the HttpOnly flag. If this cookie does not need client-side JS access, it should be secured.`,
         evidence: `Cookie: ${cookie.name}`,
         severity: isLikelySession ? "high" : "low",
         confidence: isLikelySession ? "firm" : "tentative",

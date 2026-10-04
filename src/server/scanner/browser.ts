@@ -66,9 +66,10 @@ export async function withBrowser<T>(
     let cleanupFailed = false;
 
     try {
-      if (context) {
+      const ctx = context as BrowserContext | null;
+      if (ctx) {
         await Promise.race([
-          context.close(),
+          ctx.close(),
           new Promise((_, r) => setTimeout(() => r(new Error("Context close timeout")), 3000))
         ]);
       }
@@ -78,35 +79,25 @@ export async function withBrowser<T>(
     }
     
     try {
-      if (browser) {
+      const b = browser as Browser | null;
+      if (b) {
         await Promise.race([
-          browser.close(),
+          b.close(),
           new Promise((_, r) => setTimeout(() => r(new Error("Browser close timeout")), 5000))
         ]);
       }
     } catch (e) {
       console.error("Browser close failed or timed out:", e);
       cleanupFailed = true;
-      
-      // Fallback: forcefully kill the Chromium process
-      const proc = browser?.process();
-      if (proc && !proc.killed) {
-        console.warn("Force killing orphaned Chromium process...");
-        proc.kill('SIGKILL');
-      }
+      // Playwright manages its own child processes. If close() fails, we cannot reliably force kill it 
+      // without OS-level PIDs, which Playwright hides by design in this mode.
     }
 
     // Release lock only after cleanup is fully attempted
     if (cleanupFailed) {
-      // If we couldn't reliably kill the browser, mark it fatal to prevent accumulation
-      // We assume SIGKILL works, but if it doesn't, we should fail safe.
-      const proc = browser?.process();
-      if (proc && !proc.killed) {
-        isScanning = "fatal";
-        console.error("FATAL: Failed to kill Chromium process. Scanner is permanently locked.");
-      } else {
-        isScanning = false;
-      }
+      // If we couldn't reliably close the browser, mark it fatal to prevent accumulation
+      isScanning = "fatal";
+      console.error("FATAL: Failed to cleanly close Chromium process. Scanner is permanently locked.");
     } else {
       isScanning = false;
     }

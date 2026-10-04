@@ -14,9 +14,9 @@ export function checkSecurityHeaders(response: Response): SecurityFinding[] {
       findings.push({
         checkName: "Strict-Transport-Security (HSTS) Missing",
         category: "misconfiguration",
-        description: "The application does not enforce HTTPS connections using HSTS.",
+        description: "The application lacks HSTS enforcement. This is a configuration weakness that allows initial connections over unencrypted HTTP before redirecting.",
         evidence: "Missing 'Strict-Transport-Security' header",
-        severity: "high",
+        severity: "medium",
         confidence: "certain",
         remediation: "Add the Strict-Transport-Security header (e.g., max-age=31536000; includeSubDomains).",
       });
@@ -29,9 +29,9 @@ export function checkSecurityHeaders(response: Response): SecurityFinding[] {
     findings.push({
       checkName: "Content-Security-Policy (CSP) Missing",
       category: "defense-in-depth",
-      description: "No CSP is implemented, leaving the application more vulnerable to XSS and data injection.",
+      description: "No CSP is implemented. While not an immediate vulnerability, lacking a CSP reduces defense-in-depth against XSS attacks.",
       evidence: "Missing 'Content-Security-Policy' header",
-      severity: "medium",
+      severity: "low",
       confidence: "certain",
       remediation: "Implement a restrictive CSP to limit allowed resource origins.",
     });
@@ -43,7 +43,7 @@ export function checkSecurityHeaders(response: Response): SecurityFinding[] {
     findings.push({
       checkName: "X-Content-Type-Options Missing or Invalid",
       category: "misconfiguration",
-      description: "The application does not prevent MIME-sniffing, which can lead to XSS via uploaded files.",
+      description: "The application does not enforce strict MIME types, which is a minor configuration weakness that could allow MIME-sniffing.",
       evidence: xcto ? `Found: ${xcto}` : "Missing 'X-Content-Type-Options' header",
       severity: "low",
       confidence: "certain",
@@ -58,7 +58,7 @@ export function checkSecurityHeaders(response: Response): SecurityFinding[] {
     findings.push({
       checkName: "Clickjacking Protection Missing",
       category: "misconfiguration",
-      description: "The application does not prevent framing, leaving it vulnerable to clickjacking.",
+      description: "The application does not restrict framing. This configuration weakness could allow the page to be embedded in an attacker's site.",
       evidence: "Missing both 'X-Frame-Options' and CSP 'frame-ancestors' directive",
       severity: "medium",
       confidence: "certain",

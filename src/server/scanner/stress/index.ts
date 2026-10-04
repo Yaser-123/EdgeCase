@@ -38,11 +38,36 @@ export async function runStressTests(page: Page, deadlineMs: number): Promise<St
     }
   }
 
+  // Group repetitive overlap findings
+  const groupedFindings: StressFinding[] = [];
+  const overlapMap = new Map<string, StressFinding & { count: number }>();
+
+  for (const finding of allFindings) {
+    if (finding.suspected && finding.description.includes("overlapping or obscured by")) {
+      const key = `${finding.scenarioName}-${finding.description}`;
+      if (overlapMap.has(key)) {
+        overlapMap.get(key)!.count++;
+      } else {
+        overlapMap.set(key, { ...finding, count: 1 });
+      }
+    } else {
+      groupedFindings.push(finding);
+    }
+  }
+
+  for (const grouped of overlapMap.values()) {
+    if (grouped.count > 1) {
+      grouped.description = `${grouped.count} elements are ${grouped.description.replace('Element is ', '')}`;
+      grouped.selector = `Multiple elements (e.g., ${grouped.selector})`;
+    }
+    groupedFindings.push(grouped);
+  }
+
   return {
     scenariosCompleted: completed,
     totalScenarios: SCENARIO_IDS.length,
     isPartial,
-    totalFindings: allFindings.length,
-    findings: allFindings
+    totalFindings: groupedFindings.length,
+    findings: groupedFindings
   };
 }

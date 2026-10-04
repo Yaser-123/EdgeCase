@@ -73,14 +73,26 @@ export class NetworkMonitor {
     // Avoid double counting aborted or blocked by client (adblocker/SSRF protect)
     const failureText = request.failure()?.errorText || "Unknown error";
     if (failureText === "net::ERR_ABORTED" || failureText.includes("net::ERR_BLOCKED_BY_CLIENT")) return;
-    if (this.scenarioName === "failed-resources" && failureText === "net::ERR_FAILED") return; // Simulated failure
+    if (this.scenarioName === "failed-resources" && failureText === "net::ERR_FAILED") {
+      this.findings.push({
+        scenarioName: this.scenarioName,
+        resourceUrl: this.sanitizeUrl(request.url()),
+        resourceType: request.resourceType(),
+        status: "SIMULATED_FAILURE",
+        description: `Deliberately aborted resource request to test application resilience.`,
+        severity: "info",
+        confidence: "certain",
+        remediation: "Verify the application doesn't crash when this resource fails to load."
+      });
+      return;
+    }
 
     this.findings.push({
       scenarioName: this.scenarioName,
       resourceUrl: this.sanitizeUrl(request.url()),
       resourceType: request.resourceType(),
       status: failureText,
-      description: `Resource failed to load under simulated network conditions.`,
+      description: `Resource failed to load under simulated network conditions (natural failure).`,
       severity: this.scenarioName === "offline" ? "info" : "medium",
       confidence: "certain",
       remediation: "Ensure the application handles network failures gracefully and falls back correctly."

@@ -18,8 +18,9 @@ async function run() {
     // Load local HTML
     await page.setContent(html, { waitUntil: "domcontentloaded" });
 
-    // Run tests
-    const results = await runStressTests(page);
+    // Run tests with 45s deadline
+    const deadlineMs = Date.now() + 45000;
+    const results = await runStressTests(page, deadlineMs);
     
     console.log(`Test completed with ${results.totalFindings} findings.`);
     console.log(JSON.stringify(results.findings, null, 2));
