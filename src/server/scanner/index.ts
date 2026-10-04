@@ -7,6 +7,7 @@ import { runSecurityAudit } from "./security/index";
 import { runNetworkResilienceTests } from "./network/index";
 import { promises as dns } from "dns";
 import * as ipaddr from "ipaddr.js";
+import { enrichScanResultWithRemediation } from "./remediation";
 
 export async function runFullScan(inputUrl: string): Promise<ScanResult> {
   try {
@@ -125,7 +126,7 @@ export async function runFullScan(inputUrl: string): Promise<ScanResult> {
       });
       const screenshot = `data:image/jpeg;base64,${screenshotBuffer.toString("base64")}`;
 
-      return {
+      const finalResult: ScanResult = {
         status: "success",
         metadata: {
           url: finalUrl,
@@ -142,6 +143,8 @@ export async function runFullScan(inputUrl: string): Promise<ScanResult> {
         network,
         screenshot,
       };
+
+      return enrichScanResultWithRemediation(finalResult);
     });
   } catch (error: any) {
     console.error("Scan Failed:", error);

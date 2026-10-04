@@ -12,6 +12,7 @@ export interface NetworkFinding {
   confidence: NetworkConfidence;
   remediation: string;
   applicationErrorOccurred?: boolean;
+  fixAssistant?: import("../remediation/types").Remediation;
 }
 
 export interface NetworkResult {

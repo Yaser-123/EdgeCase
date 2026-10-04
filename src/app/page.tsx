@@ -15,11 +15,75 @@ import {
   Layout,
   ExternalLink,
   Download,
-  AlertTriangle
+  AlertTriangle,
+  Copy,
+  Bot,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScanResult } from "@/server/scanner/types";
+
+
+function RemediationBlock({ fixAssistant }: { fixAssistant?: any }) {
+  const [expanded, setExpanded] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
+
+  if (!fixAssistant) return null;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(fixAssistant.prompt);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="mt-4 border border-blue-500/30 rounded-xl overflow-hidden bg-blue-500/5 transition-all">
+      <button 
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between p-3 px-4 hover:bg-blue-500/10 transition-colors text-left"
+      >
+        <div className="flex items-center gap-2 text-blue-400 font-semibold text-sm uppercase tracking-wider">
+          <Bot className="w-4 h-4" />
+          Fix Assistant
+        </div>
+        {expanded ? <ChevronUp className="w-4 h-4 text-blue-400" /> : <ChevronDown className="w-4 h-4 text-blue-400" />}
+      </button>
+
+      {expanded && (
+        <div className="p-4 pt-0 border-t border-blue-500/20 space-y-4">
+          <div className="grid md:grid-cols-2 gap-4 mt-4">
+            <div className="bg-background/50 p-4 rounded-lg border border-border">
+              <h5 className="text-xs uppercase tracking-wider font-bold text-foreground/50 mb-2">Why It Matters</h5>
+              <p className="text-sm text-foreground/80">{fixAssistant.whyItMatters}</p>
+            </div>
+            <div className="bg-background/50 p-4 rounded-lg border border-border">
+              <h5 className="text-xs uppercase tracking-wider font-bold text-foreground/50 mb-2">Recommended Fix</h5>
+              <p className="text-sm text-foreground/80">{fixAssistant.recommendedFix}</p>
+            </div>
+          </div>
+          
+          <div className="bg-black/40 p-4 rounded-lg border border-border/50 relative group">
+            <div className="flex items-center justify-between mb-3">
+              <h5 className="text-xs uppercase tracking-wider font-bold text-blue-400">AI Prompt</h5>
+              <button 
+                onClick={handleCopy}
+                className="flex items-center gap-1.5 text-xs bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 px-3 py-1.5 rounded-md transition-colors cursor-pointer z-10 relative"
+              >
+                {copied ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied ? "Copied!" : "Copy Prompt"}
+              </button>
+            </div>
+            <pre className="text-sm font-mono text-foreground/70 whitespace-pre-wrap overflow-x-auto custom-scrollbar">
+              {fixAssistant.prompt}
+            </pre>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Home() {
   const [url, setUrl] = useState("");
@@ -135,6 +199,54 @@ export default function Home() {
     URL.revokeObjectURL(url);
   };
 
+  const [copiedBulk, setCopiedBulk] = useState(false);
+
+  const handleCopyBulkFix = () => {
+    if (!result) return;
+    
+    const parts = ["# EdgeCase Bulk Remediation Plan\n"];
+    
+    if (result.accessibility?.violations?.length) {
+      parts.push("## Accessibility Issues");
+      result.accessibility.violations.forEach(v => {
+        parts.push(`- **${v.id}**: ${v.description}`);
+        parts.push(`  Fix: ${v.fixAssistant?.recommendedFix}\n  Prompt: ${v.fixAssistant?.prompt}\n`);
+      });
+    }
+    
+    if (result.stress?.findings?.length) {
+      parts.push("## UI Stress Issues");
+      result.stress.findings.forEach(f => {
+        parts.push(`- **${f.issueType}** (${f.scenarioName})`);
+        parts.push(`  Fix: ${f.fixAssistant?.recommendedFix}\n  Prompt: ${f.fixAssistant?.prompt}\n`);
+      });
+    }
+
+    if (result.security?.findings?.length) {
+      parts.push("## Security Issues");
+      result.security.findings.forEach(f => {
+        parts.push(`- **${f.checkName}** [${f.severity}]`);
+        parts.push(`  Fix: ${f.fixAssistant?.recommendedFix}\n  Prompt: ${f.fixAssistant?.prompt}\n`);
+      });
+    }
+    
+    if (result.network?.findings?.length) {
+      parts.push("## Network Resilience Issues");
+      result.network.findings.forEach(f => {
+        parts.push(`- **${f.scenarioName}**`);
+        parts.push(`  Fix: ${f.fixAssistant?.recommendedFix}\n  Prompt: ${f.fixAssistant?.prompt}\n`);
+      });
+    }
+    
+    if (parts.length === 1) {
+      parts.push("No issues found to remediate.");
+    }
+    
+    navigator.clipboard.writeText(parts.join("\n"));
+    setCopiedBulk(true);
+    setTimeout(() => setCopiedBulk(false), 3000);
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header */}
@@ -233,9 +345,15 @@ export default function Home() {
                         <Clock className="w-3 h-3" /> {result.timing ? (result.timing.duration / 1000).toFixed(2) : "--"}s
                       </span>
                     </div>
-                    <Button onClick={handleExportReport} variant="outline" className="ml-4 gap-2 border-primary/20 hover:bg-primary/10 hover:text-primary">
-                      <Download className="w-4 h-4" /> Export Report
-                    </Button>
+                    <div className="ml-4 flex gap-2">
+                      <Button onClick={handleCopyBulkFix} variant="outline" className="gap-2 border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300">
+                        {copiedBulk ? <CheckCircle2 className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                        {copiedBulk ? "Copied!" : "Generate All Fix Prompts"}
+                      </Button>
+                      <Button onClick={handleExportReport} variant="outline" className="gap-2 border-primary/20 hover:bg-primary/10 hover:text-primary">
+                        <Download className="w-4 h-4" /> Export Report
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
@@ -327,6 +445,8 @@ export default function Home() {
                                 <a href={v.helpUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-4">
                                   {v.help} <ExternalLink className="w-3 h-3" />
                                 </a>
+
+                                <RemediationBlock fixAssistant={v.fixAssistant} />
                               </div>
                             ))}
                           </div>
@@ -422,11 +542,7 @@ export default function Home() {
                                 <code className="text-blue-300 break-all">{f.evidence}</code>
                               </div>
                               
-                              {f.remediation && (
-                                <div className="mt-4 bg-green-500/10 rounded-lg p-4 border border-green-500/20 text-sm text-green-200/80">
-                                  <strong>Remediation:</strong> {f.remediation}
-                                </div>
-                              )}
+                              <RemediationBlock fixAssistant={f.fixAssistant} />
                             </div>
                           ))}
                         </div>
@@ -551,6 +667,8 @@ export default function Home() {
                                   )}
                                 </>
                               )}
+
+                              <RemediationBlock fixAssistant={f.fixAssistant} />
                             </div>
                           ))}
                         </div>
@@ -653,11 +771,7 @@ export default function Home() {
                                   )}
                                 </div>
                                 
-                                {f.remediation && (
-                                  <div className="mt-4 bg-secondary/30 rounded-lg p-4 border border-border text-sm text-foreground/80">
-                                    <strong>Remediation:</strong> {f.remediation}
-                                  </div>
-                                )}
+                                <RemediationBlock fixAssistant={f.fixAssistant} />
                               </div>
                             ))}
                           </div>

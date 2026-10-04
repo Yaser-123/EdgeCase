@@ -36,5 +36,6 @@ export interface AccessibilityResult {
       html: string;
       failureSummary?: string;
     }>;
+    fixAssistant?: import("./remediation/types").Remediation;
   }>;
 }

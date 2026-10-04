@@ -10,6 +10,7 @@ export interface SecurityFinding {
   severity: SecuritySeverity;
   confidence: SecurityConfidence;
   remediation: string;
+  fixAssistant?: import("../remediation/types").Remediation;
 }
 
 export interface SecurityResult {

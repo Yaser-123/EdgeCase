@@ -20,6 +20,8 @@ export interface StressFinding {
     boundingRect: { x: number; y: number; width: number; height: number };
     computedStyles: Record<string, string>;
   }[];
+  
+  fixAssistant?: import("../remediation/types").Remediation;
 }
 
 export interface StressScenario {
