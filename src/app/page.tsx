@@ -420,6 +420,98 @@ export default function Home() {
                       )}
                     </div>
                   </div>
+
+                  {/* Network Resilience Testing */}
+                  <div className="bg-background rounded-xl border border-border overflow-hidden lg:col-span-2">
+                    <div className="p-6 border-b border-border bg-card/50 flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                          <Activity className="w-5 h-5 text-emerald-400" />
+                        </div>
+                        <h3 className="text-xl font-semibold">Network Resilience</h3>
+                      </div>
+                      <div className="flex gap-4">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-red-400">{result.network?.totalFindings || 0}</div>
+                          <div className="text-xs text-foreground/50 uppercase font-semibold tracking-wider">Findings</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-emerald-400">{result.network?.scenariosCompleted || 0} / {result.network?.totalScenarios || 0}</div>
+                          <div className="text-xs text-foreground/50 uppercase font-semibold tracking-wider">Scenarios</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {result.network?.isPartial && (
+                      <div className="p-4 bg-yellow-500/10 border-b border-yellow-500/20 text-yellow-300 flex items-center justify-center gap-2 text-sm">
+                        <AlertCircle className="w-4 h-4" />
+                        Scan hit the 45-second timeout limit. Partial network testing results are shown below.
+                      </div>
+                    )}
+                    
+                    <div className="p-0 max-h-[600px] overflow-y-auto custom-scrollbar">
+                      {result.network?.findings && result.network.findings.length > 0 ? (
+                        <div className="divide-y divide-border">
+                          {result.network.findings.map((f, i) => (
+                            <div key={i} className="p-6 hover:bg-secondary/20 transition-colors">
+                              <div className="flex items-start justify-between gap-4 mb-3">
+                                <h4 className="font-medium text-lg text-emerald-300">
+                                  {f.scenarioName.replace('-', ' ').toUpperCase()} SCENARIO
+                                </h4>
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-xs px-2 py-1 rounded font-bold uppercase tracking-wider ${
+                                    f.severity === 'critical' ? 'bg-red-600/20 text-red-500' :
+                                    f.severity === 'high' ? 'bg-red-500/20 text-red-400' : 
+                                    f.severity === 'medium' ? 'bg-orange-500/20 text-orange-400' :
+                                    f.severity === 'low' ? 'bg-yellow-500/20 text-yellow-400' :
+                                    'bg-emerald-500/20 text-emerald-400'
+                                  }`}>
+                                    {f.severity}
+                                  </span>
+                                </div>
+                              </div>
+                              <p className="text-foreground/80 mb-4">{f.description}</p>
+                              
+                              <div className="grid md:grid-cols-2 gap-4">
+                                {f.resourceUrl && (
+                                  <div className="bg-secondary/50 rounded-lg p-4 font-mono text-sm border border-border md:col-span-2">
+                                    <div className="text-foreground/50 text-xs mb-2 uppercase tracking-wider font-sans font-semibold">Resource URL</div>
+                                    <code className="text-blue-300 break-all">{f.resourceUrl}</code>
+                                  </div>
+                                )}
+                                
+                                {f.resourceType && (
+                                  <div className="bg-secondary/50 rounded-lg p-4 font-mono text-sm border border-border">
+                                    <div className="text-foreground/50 text-xs mb-2 uppercase tracking-wider font-sans font-semibold">Type</div>
+                                    <code className="text-emerald-300 break-all">{f.resourceType}</code>
+                                  </div>
+                                )}
+
+                                {f.status && (
+                                  <div className="bg-secondary/50 rounded-lg p-4 font-mono text-sm border border-border">
+                                    <div className="text-foreground/50 text-xs mb-2 uppercase tracking-wider font-sans font-semibold">Status / Error</div>
+                                    <code className="text-red-300 break-all">{f.status}</code>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {f.remediation && (
+                                <div className="mt-4 bg-secondary/30 rounded-lg p-4 border border-border text-sm text-foreground/80">
+                                  <strong>Remediation:</strong> {f.remediation}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-12 text-center text-foreground/50">
+                          <CheckCircle2 className="w-12 h-12 text-emerald-500/50 mx-auto mb-4" />
+                          <p className="text-lg">No network resilience issues detected.</p>
+                          <p className="text-sm mt-1">Application behaved flawlessly under simulated network duress.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : (

@@ -4,6 +4,7 @@ import { withBrowser } from "./browser";
 import { runAccessibilityAudit } from "./accessibility";
 import { runStressTests } from "./stress/index";
 import { runSecurityAudit } from "./security/index";
+import { runNetworkResilienceTests } from "./network/index";
 import { promises as dns } from "dns";
 import * as ipaddr from "ipaddr.js";
 
@@ -112,6 +113,10 @@ export async function runFullScan(inputUrl: string): Promise<ScanResult> {
       const stressDeadline = startTime + 35000; 
       const stress = await runStressTests(page, stressDeadline);
 
+      // Run Network Resilience Tests
+      // We use the same deadline to budget whatever is remaining
+      const network = await runNetworkResilienceTests(page, finalUrl, stressDeadline);
+
       // Capture bounded screenshot to prevent OOM on massive pages
       const screenshotBuffer = await page.screenshot({ 
         type: "jpeg", 
@@ -134,6 +139,7 @@ export async function runFullScan(inputUrl: string): Promise<ScanResult> {
         security,
         accessibility,
         stress,
+        network,
         screenshot,
       };
     });

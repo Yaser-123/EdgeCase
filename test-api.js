@@ -11,6 +11,8 @@ async function test() {
   console.log("Stress Issues:", data.stress?.totalFindings);
   console.log("Stress Scenarios Completed:", data.stress?.scenariosCompleted);
   console.log("Security Findings:", data.security?.totalFindings);
+  console.log("Network Scenarios Completed:", data.network?.scenariosCompleted);
+  console.log("Network Findings:", data.network?.totalFindings);
 
   console.log("\nTesting website with potential issues (e.g. older site)...");
   res = await fetch("http://localhost:3000/api/scan", {
@@ -24,5 +26,7 @@ async function test() {
   console.log("Stress Issues:", data.stress?.totalFindings);
   console.log("Stress Scenarios Completed:", data.stress?.scenariosCompleted);
   console.log("Security Findings:", data.security?.totalFindings);
+  console.log("Network Scenarios Completed:", data.network?.scenariosCompleted);
+  console.log("Network Findings:", data.network?.totalFindings);
 }
 test();
