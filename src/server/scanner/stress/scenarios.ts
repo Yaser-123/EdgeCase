@@ -1,27 +1,25 @@
 import { Page } from "playwright";
 
 // Scenarios run entirely inside the browser context.
-// We manage state via a global variable to restore text content.
-export async function applyScenario(page: Page, scenarioId: string) {
-  await page.evaluate((id) => {
-    // Initialize backup store if missing
-    if (!(window as any).__stressBackup) {
-      (window as any).__stressBackup = new Map<Node, string>();
+// We use a raw string for evaluate to prevent TS transpiler (like tsx) from injecting __name helpers that break Playwright.
+const browserScript = `
+  (function(id) {
+    if (!window.__stressBackup) {
+      window.__stressBackup = new Map();
     }
-    const backup = (window as any).__stressBackup as Map<Node, string>;
+    const backup = window.__stressBackup;
 
-    // Helpers
-    function isTextNodeValid(node: Node): boolean {
+    function isTextNodeValid(node) {
       if (node.nodeType !== Node.TEXT_NODE) return false;
       const text = node.nodeValue?.trim();
-      if (!text) return false; // Ignore empty/whitespace nodes
+      if (!text) return false;
       const parent = node.parentElement;
       if (!parent) return false;
-      if (['SCRIPT', 'STYLE', 'NOSCRIPT', 'IFRAME', 'OBJECT'].includes(parent.tagName)) return false;
+      if (['SCRIPT', 'STYLE', 'NOSCRIPT', 'IFRAME', 'OBJECT', 'TEXTAREA'].includes(parent.tagName)) return false;
       return true;
     }
 
-    function getTextNodes(node: Node, textNodes: Node[] = []) {
+    function getTextNodes(node, textNodes = []) {
       if (isTextNodeValid(node)) textNodes.push(node);
       for (let child = node.firstChild; child; child = child.nextSibling) {
         getTextNodes(child, textNodes);
@@ -29,17 +27,31 @@ export async function applyScenario(page: Page, scenarioId: string) {
       return textNodes;
     }
 
-    const allTextNodes = getTextNodes(document.body);
+    function getFormElements() {
+      const inputs = Array.from(document.querySelectorAll("input"));
+      const textareas = Array.from(document.querySelectorAll("textarea"));
+      
+      const allowedInputTypes = ["text", "email", "url", "search", "tel", "number"];
+      
+      const validInputs = inputs.filter(input => {
+        const type = (input.getAttribute("type") || "text").toLowerCase();
+        return allowedInputTypes.includes(type);
+      });
 
-    const syntheticStrings: Record<string, (original: string) => string> = {
+      return [...validInputs, ...textareas];
+    }
+
+    const allTextNodes = getTextNodes(document.body);
+    const formElements = getFormElements();
+
+    const syntheticStrings = {
       "long-text": () => "This is an extremely long string designed to test wrapping and overflow behaviors in UI components. ".repeat(10),
       "long-username": () => "SuperLongUsernameWithNoSpacesAllowedAtAll1234567890",
-      "large-numeric": (val: string) => {
-        // Only modify if original looks like a number/currency
-        if (/^[\$\€\£]?\s*[\d,\.]+/.test(val)) {
+      "large-numeric": (val) => {
+        if (/^[\\$\\€\\£]?\\s*[\\d,\\.]+/.test(val)) {
           return "$999,999,999,999.99";
         }
-        return val; // leave unchanged if not numeric
+        return val;
       },
       "emojis": () => "👨‍👩‍👧‍👦 👩🏽‍💻 🔥 🐛 🛑 🚧 ⚠️ " + "🦊".repeat(20),
       "rtl": () => "مرحبا بك في تطبيقنا، هذا النص هو لاختبار دعم اللغة العربية",
@@ -47,35 +59,43 @@ export async function applyScenario(page: Page, scenarioId: string) {
     };
 
     const mutator = syntheticStrings[id];
-    if (!mutator) throw new Error(`Unknown scenario: ${id}`);
+    if (!mutator) throw new Error("Unknown scenario: " + id);
 
     for (const node of allTextNodes) {
-      if (!backup.has(node)) {
-        backup.set(node, node.nodeValue || "");
-      }
-      
+      if (!backup.has(node)) backup.set(node, node.nodeValue || "");
       const original = backup.get(node) || "";
       const newValue = mutator(original);
-      
-      // Only update if changed, to minimize reflows where not needed (e.g. numeric scenario)
-      if (newValue !== original) {
-        node.nodeValue = newValue;
-      }
+      if (newValue !== original) node.nodeValue = newValue;
     }
-  }, scenarioId);
+
+    for (const el of formElements) {
+      if (!backup.has(el)) backup.set(el, el.value || "");
+      const original = backup.get(el) || "";
+      const newValue = mutator(original);
+      if (newValue !== original) el.value = newValue;
+    }
+  })
+`;
+
+export async function applyScenario(page: Page, scenarioId: string) {
+  await page.evaluate(`${browserScript}('${scenarioId}')`);
 }
 
 export async function revertScenarios(page: Page) {
-  await page.evaluate(() => {
-    const backup = (window as any).__stressBackup as Map<Node, string>;
-    if (!backup) return;
-    
-    for (const [node, originalText] of backup.entries()) {
-      node.nodeValue = originalText;
-    }
-    // We don't clear the map so we can reuse it, or we could clear it. 
-    // Keeping it is fine since we reuse the same page.
-  });
+  await page.evaluate(`
+    (function() {
+      const backup = window.__stressBackup;
+      if (!backup) return;
+      
+      for (const [node, originalText] of backup.entries()) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          node.nodeValue = originalText;
+        } else {
+          node.value = originalText;
+        }
+      }
+    })();
+  `);
 }
 
 export const SCENARIO_IDS = [

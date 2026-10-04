@@ -82,6 +82,26 @@
     background: rgba(0, 0, 255, 0.5);
     z-index: 5;
   }
+
+  /* 6. Intentional ellipsis */
+  .ellipsis-box {
+    width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: #e0e0e0;
+    padding: 5px;
+    margin-bottom: 20px;
+  }
+
+  /* 7. Input and Textarea */
+  .form-group {
+    margin-bottom: 20px;
+  }
+  input.overflow-input, textarea.overflow-textarea {
+    width: 200px;
+    box-sizing: border-box;
+  }
 </style>
 </head>
 <body>
@@ -105,6 +125,16 @@
   <div class="overlap-container">
     <div class="overlap-1">Overlap 1</div>
     <div class="overlap-2">Overlap 2</div>
+  </div>
+
+  <div class="ellipsis-box">
+    This is intentional ellipsis behavior.
+  </div>
+
+  <div class="form-group">
+    <input type="text" class="overflow-input" value="Short Value" />
+    <br><br>
+    <textarea class="overflow-textarea">Short Textarea</textarea>
   </div>
 
 </body>
