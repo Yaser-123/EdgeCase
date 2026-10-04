@@ -3,7 +3,7 @@ import sparticuzChromium from "@sparticuz/chromium-min";
 
 // Lock state: false | true | "fatal"
 let isScanning: boolean | "fatal" = false;
-const OVERALL_TIMEOUT_MS = 45000; // 45 seconds
+const OVERALL_TIMEOUT_MS = 59000; // 59 seconds (Vercel max is 60s)
 
 export async function withBrowser<T>(
   action: (page: Page, browser: Browser) => Promise<T>

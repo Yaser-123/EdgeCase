@@ -815,7 +815,7 @@ export default function Home() {
                     {result.stress?.isPartial && (
                       <div className="p-4 bg-yellow-500/10 border-b border-yellow-500/20 text-yellow-300 flex items-center justify-center gap-2 text-sm">
                         <AlertCircle className="w-4 h-4" />
-                        Scan hit the 45-second timeout limit. Partial stress testing results are shown below.
+                        Scan hit the 59-second timeout limit. Partial stress testing results are shown below.
                       </div>
                     )}
                     
@@ -942,7 +942,7 @@ export default function Home() {
                     {result.network?.isPartial && (
                       <div className="p-4 bg-yellow-500/10 border-b border-yellow-500/20 text-yellow-300 flex items-center justify-center gap-2 text-sm">
                         <AlertCircle className="w-4 h-4" />
-                        Scan hit the 45-second timeout limit. Partial network testing results are shown below.
+                        Scan hit the 59-second timeout limit. Partial network testing results are shown below.
                       </div>
                     )}
                     

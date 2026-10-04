@@ -4,6 +4,7 @@
 
 [![Live Demo](https://img.shields.io/badge/Live_Demo-edgecase--ai.vercel.app-blue?style=for-the-badge)](https://edgecase-ai.vercel.app/)
 [![Watch Demo](https://img.shields.io/badge/Watch_Video-YouTube-red?style=for-the-badge&logo=youtube)](https://youtu.be/-6Y50hW3FuQ)
+[![Pitch Deck](https://img.shields.io/badge/Pitch_Deck-Google_Drive-1DA462?style=for-the-badge&logo=googledrive)](https://drive.google.com/file/d/1uv_qB9kAHPgDmnHYYIk-nIymmL68Okf_/view?usp=sharing)
 
 EdgeCase is an autonomous, enterprise-grade web application scanner that stress-tests your UI, audits accessibility, uncovers passive security flaws, and simulates network duress in a single pass. 
 
@@ -29,6 +30,7 @@ Every finding includes clear explanations ("Why it matters"), technical recommen
 ## 🔗 Links
 - **Live Application:** [https://edgecase-ai.vercel.app/](https://edgecase-ai.vercel.app/)
 - **Demo Video:** [https://youtu.be/-6Y50hW3FuQ](https://youtu.be/-6Y50hW3FuQ)
+- **Pitch Deck (PPT):** [View on Google Drive](https://drive.google.com/file/d/1uv_qB9kAHPgDmnHYYIk-nIymmL68Okf_/view?usp=sharing)
 
 ---
 
