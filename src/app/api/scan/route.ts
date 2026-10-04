@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runFullScan } from "@/server/scanner";
 
+export const maxDuration = 60; // Max allowed duration on Vercel Hobby
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

@@ -1,4 +1,4 @@
-import { chromium, Browser, BrowserContext, Page } from "playwright";
+import { Browser, BrowserContext, Page } from "playwright-core";
 
 // Lock state: false | true | "fatal"
 let isScanning: boolean | "fatal" = false;
@@ -21,15 +21,33 @@ export async function withBrowser<T>(
 
   try {
     const launchAndRun = async () => {
-      browser = await chromium.launch({
-        headless: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu',
-        ],
-      });
+      const isVercel = process.env.VERCEL === "1" || process.env.VERCEL_ENV;
+      
+      if (isVercel) {
+        const chromium = (await import("@sparticuz/chromium-min")).default;
+        const playwright = await import("playwright-core");
+        
+        const executablePath = await chromium.executablePath(
+          "https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar"
+        );
+        
+        browser = await playwright.chromium.launch({
+          args: chromium.args,
+          executablePath,
+          headless: true,
+        });
+      } else {
+        const playwright = await import("playwright");
+        browser = await playwright.chromium.launch({
+          headless: true,
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+          ],
+        });
+      }
 
       context = await browser.newContext({
         viewport: { width: 1280, height: 800 },
