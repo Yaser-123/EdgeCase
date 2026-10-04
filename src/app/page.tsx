@@ -8,35 +8,62 @@ import {
   Accessibility, 
   ArrowRight,
   Globe,
-  TerminalSquare
+  TerminalSquare,
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  Layout,
+  ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ScanResult } from "@/server/scanner/types";
 
 export default function Home() {
   const [url, setUrl] = useState("");
-  const [isSimulating, setIsSimulating] = useState(false);
-  const [message, setMessage] = useState("");
+  const [isScanning, setIsScanning] = useState(false);
+  const [message, setMessage] = useState<{ text: string; type: "error" | "info" } | null>(null);
+  const [result, setResult] = useState<ScanResult | null>(null);
 
-  const handleRunTest = (e: React.FormEvent) => {
+  const handleRunTest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!url) {
-      setMessage("Please enter a valid URL.");
+      setMessage({ text: "Please enter a valid URL.", type: "error" });
       return;
     }
     
     try {
       new URL(url.startsWith("http") ? url : `https://${url}`);
-      setMessage("");
-      setIsSimulating(true);
-      
-      // Simulate connection attempt for the UI (MVP step 1)
-      setTimeout(() => {
-        setIsSimulating(false);
-        setMessage("Scanner engine not connected yet. (Coming soon)");
-      }, 1500);
     } catch {
-      setMessage("Please enter a valid URL (e.g., https://example.com).");
+      setMessage({ text: "Please enter a valid URL (e.g., https://example.com).", type: "error" });
+      return;
+    }
+
+    setMessage({ text: "Initializing scanner engine. This may take up to 30 seconds...", type: "info" });
+    setIsScanning(true);
+    setResult(null);
+    
+    try {
+      const response = await fetch("/api/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok || data.status === "error") {
+        setMessage({ text: data.error || "Scan failed due to an unknown error.", type: "error" });
+      } else {
+        setResult(data);
+        setMessage(null);
+        // Scroll to results
+        setTimeout(() => document.getElementById("results")?.scrollIntoView({ behavior: "smooth" }), 100);
+      }
+    } catch (err: any) {
+      setMessage({ text: err.message || "Failed to reach the scanning service.", type: "error" });
+    } finally {
+      setIsScanning(false);
     }
   };
 
@@ -51,10 +78,6 @@ export default function Home() {
             </div>
             <span className="font-bold text-xl tracking-tight">EdgeCase</span>
           </div>
-          <nav className="hidden sm:flex gap-6 text-sm font-medium text-foreground/80">
-            <a href="#features" className="hover:text-primary transition-colors">Features</a>
-            <a href="#how-it-works" className="hover:text-primary transition-colors">How it works</a>
-          </nav>
         </div>
       </header>
 
@@ -82,115 +105,179 @@ export default function Home() {
                     className="pl-10 border-0 bg-transparent h-12 focus-visible:ring-0 focus-visible:ring-offset-0 text-base"
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
+                    disabled={isScanning}
                   />
                 </div>
                 <Button 
                   type="submit" 
                   className="h-12 px-8 font-semibold text-base whitespace-nowrap"
-                  disabled={isSimulating}
+                  disabled={isScanning}
                 >
-                  {isSimulating ? "Connecting..." : "Run Stress Test"}
-                  {!isSimulating && <ArrowRight className="w-4 h-4 ml-2" />}
+                  {isScanning ? (
+                    <span className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                      Scanning...
+                    </span>
+                  ) : (
+                    <>Run Stress Test <ArrowRight className="w-4 h-4 ml-2" /></>
+                  )}
                 </Button>
               </div>
             </form>
             
             {message && (
-              <div className="mt-6 inline-block bg-secondary/80 backdrop-blur-sm border border-border text-sm px-4 py-2 rounded-full text-primary-foreground animate-in fade-in slide-in-from-bottom-2">
-                {message}
+              <div className={`mt-6 flex items-center justify-center gap-2 max-w-xl mx-auto border px-4 py-3 rounded-lg text-sm ${
+                message.type === "error" 
+                  ? "bg-destructive/10 border-destructive/20 text-destructive-foreground" 
+                  : "bg-secondary/80 border-border text-foreground"
+              }`}>
+                {message.type === "error" && <AlertCircle className="w-4 h-4" />}
+                {message.type === "info" && <Activity className="w-4 h-4 text-primary animate-pulse" />}
+                <span className={message.type === "error" ? "text-red-400" : ""}>{message.text}</span>
               </div>
             )}
           </div>
         </section>
 
-        {/* Features Section */}
-        <section id="features" className="py-20 bg-secondary/30 border-y border-border">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold mb-4">Four Dimensions of Testing</h2>
-              <p className="text-foreground/70 max-w-2xl mx-auto">
-                Our automated engine analyzes your provided URL across four critical categories to ensure production readiness.
-              </p>
-            </div>
+        {/* Results Section */}
+        <section id="results" className="py-20 border-t border-border bg-card/30">
+          <div className="container mx-auto px-4 max-w-6xl">
+            {result ? (
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+                  <div>
+                    <h2 className="text-3xl font-bold mb-2">Scan Results</h2>
+                    <p className="text-foreground/70 flex items-center gap-2">
+                      <a href={result.metadata?.url} target="_blank" rel="noreferrer" className="text-primary hover:underline flex items-center gap-1">
+                        {result.metadata?.url} <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </p>
+                  </div>
+                  <div className="bg-background border border-border rounded-lg px-4 py-2 flex items-center gap-4 text-sm">
+                    <div className="flex flex-col">
+                      <span className="text-foreground/50">Page Title</span>
+                      <span className="font-medium max-w-[200px] truncate" title={result.metadata?.title}>{result.metadata?.title}</span>
+                    </div>
+                    <div className="w-px h-8 bg-border" />
+                    <div className="flex flex-col">
+                      <span className="text-foreground/50">Load Time</span>
+                      <span className="font-medium flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> {result.timing ? (result.timing.duration / 1000).toFixed(2) : "--"}s
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-              <FeatureCard 
-                icon={<MonitorOff className="w-8 h-8 text-blue-400" />}
-                title="UI Stress Testing"
-                description="Injects extreme text, huge numbers, and tests responsive breakpoints to find clipping, overflow, and layout shifts."
-              />
-              <FeatureCard 
-                icon={<Accessibility className="w-8 h-8 text-green-400" />}
-                title="Accessibility"
-                description="Runs deep axe-core audits to detect missing labels, contrast issues, and keyboard navigation traps."
-              />
-              <FeatureCard 
-                icon={<ShieldCheck className="w-8 h-8 text-purple-400" />}
-                title="Security Audit"
-                description="Passively scans for missing security headers, bad cookie flags, mixed content, and exposed data."
-              />
-              <FeatureCard 
-                icon={<Activity className="w-8 h-8 text-orange-400" />}
-                title="Network Testing"
-                description="Simulates slow connections, latency spikes, and records failed resource requests and API errors."
-              />
-            </div>
-          </div>
-        </section>
+                <div className="grid lg:grid-cols-3 gap-8">
+                  {/* Left Column: Summary & Accessibility */}
+                  <div className="lg:col-span-2 space-y-8">
+                    
+                    {/* Accessibility Card */}
+                    <div className="bg-background rounded-xl border border-border overflow-hidden">
+                      <div className="p-6 border-b border-border bg-card/50 flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-green-500/10 rounded-lg">
+                            <Accessibility className="w-5 h-5 text-green-500" />
+                          </div>
+                          <h3 className="text-xl font-semibold">Accessibility Audit</h3>
+                        </div>
+                        <div className="flex gap-4">
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-red-400">{result.accessibility?.violationsCount || 0}</div>
+                            <div className="text-xs text-foreground/50 uppercase font-semibold tracking-wider">Violations</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-green-400">{result.accessibility?.passesCount || 0}</div>
+                            <div className="text-xs text-foreground/50 uppercase font-semibold tracking-wider">Passes</div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="p-0">
+                        {result.accessibility?.violations && result.accessibility.violations.length > 0 ? (
+                          <div className="divide-y divide-border">
+                            {result.accessibility.violations.map((v, i) => (
+                              <div key={i} className="p-6 hover:bg-secondary/20 transition-colors">
+                                <div className="flex items-start justify-between gap-4 mb-3">
+                                  <h4 className="font-medium text-lg text-red-300">{v.id}</h4>
+                                  <span className={`text-xs px-2 py-1 rounded font-bold uppercase tracking-wider ${
+                                    v.impact === 'critical' ? 'bg-red-500/20 text-red-400' :
+                                    v.impact === 'serious' ? 'bg-orange-500/20 text-orange-400' :
+                                    'bg-yellow-500/20 text-yellow-400'
+                                  }`}>
+                                    {v.impact || "Unknown"}
+                                  </span>
+                                </div>
+                                <p className="text-foreground/80 mb-4">{v.description}</p>
+                                
+                                <div className="bg-secondary/50 rounded-lg p-4 font-mono text-sm overflow-x-auto border border-border">
+                                  <div className="text-foreground/50 text-xs mb-2 uppercase tracking-wider font-sans font-semibold">Affected Node (1 of {v.nodes.length})</div>
+                                  <code className="text-blue-300 whitespace-pre-wrap">{v.nodes[0]?.html}</code>
+                                  {v.nodes[0]?.failureSummary && (
+                                    <div className="mt-3 pt-3 border-t border-border/50 text-red-200/80">
+                                      {v.nodes[0].failureSummary}
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                <a href={v.helpUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-4">
+                                  {v.help} <ExternalLink className="w-3 h-3" />
+                                </a>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="p-12 text-center text-foreground/50">
+                            <CheckCircle2 className="w-12 h-12 text-green-500/50 mx-auto mb-4" />
+                            <p className="text-lg">Perfect! No accessibility violations detected.</p>
+                            <p className="text-sm mt-1">Based on axe-core automated scanning.</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
 
-        {/* How it Works Section */}
-        <section id="how-it-works" className="py-24 px-4">
-          <div className="container mx-auto max-w-4xl text-center">
-            <h2 className="text-3xl font-bold mb-12">How EdgeCase Works</h2>
-            
-            <div className="grid md:grid-cols-3 gap-8 text-left">
-              <div className="relative">
-                <div className="text-5xl font-extrabold text-primary/10 absolute -top-6 -left-4">01</div>
-                <h3 className="text-xl font-semibold mb-3 relative z-10">Provide URL</h3>
-                <p className="text-foreground/70 text-sm">Enter the address of your staging or production environment. We support any publicly accessible web application.</p>
+                  {/* Right Column: Screenshot & Tech Info */}
+                  <div className="space-y-6">
+                    <div className="bg-background rounded-xl border border-border overflow-hidden">
+                      <div className="p-4 border-b border-border bg-card/50 flex items-center gap-2">
+                        <Layout className="w-4 h-4 text-foreground/50" />
+                        <h3 className="font-semibold text-sm">Full Page Snapshot</h3>
+                      </div>
+                      <div className="p-4 bg-secondary/30 relative">
+                        {result.screenshot ? (
+                          <div className="rounded-lg overflow-hidden border border-border max-h-[600px] overflow-y-auto custom-scrollbar relative">
+                            <img 
+                              src={result.screenshot} 
+                              alt="Site screenshot" 
+                              className="w-full h-auto"
+                              loading="lazy"
+                            />
+                          </div>
+                        ) : (
+                          <div className="h-48 flex items-center justify-center text-foreground/50 border border-border border-dashed rounded-lg">
+                            No screenshot available
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="relative">
-                <div className="text-5xl font-extrabold text-primary/10 absolute -top-6 -left-4">02</div>
-                <h3 className="text-xl font-semibold mb-3 relative z-10">Automated Audit</h3>
-                <p className="text-foreground/70 text-sm">Our headless Playwright engine navigates your site, injecting tests and capturing network and accessibility data.</p>
+            ) : (
+              <div className="bg-background border border-border rounded-xl p-12 border-dashed flex flex-col items-center justify-center text-foreground/50 max-w-4xl mx-auto">
+                <ShieldCheck className="w-12 h-12 mb-4 opacity-20" />
+                <p>No active scan data available.</p>
+                <p className="text-sm mt-2">Enter a URL above to generate your first quality report.</p>
               </div>
-              <div className="relative">
-                <div className="text-5xl font-extrabold text-primary/10 absolute -top-6 -left-4">03</div>
-                <h3 className="text-xl font-semibold mb-3 relative z-10">Actionable Results</h3>
-                <p className="text-foreground/70 text-sm">Review a comprehensive dashboard with severity levels, screenshots of broken UI, and exact remediation steps.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Placeholder Results Section */}
-        <section className="py-20 border-t border-border bg-card/30">
-          <div className="container mx-auto px-4 max-w-5xl text-center">
-            <h2 className="text-2xl font-bold mb-8">Scan Results</h2>
-            <div className="bg-background border border-border rounded-xl p-12 border-dashed flex flex-col items-center justify-center text-foreground/50">
-              <ShieldCheck className="w-12 h-12 mb-4 opacity-20" />
-              <p>No active scan data available.</p>
-              <p className="text-sm mt-2">Enter a URL above to generate your first quality report.</p>
-            </div>
+            )}
           </div>
         </section>
       </main>
 
-      <footer className="border-t border-border py-8 text-center text-foreground/50 text-sm">
+      <footer className="border-t border-border py-8 text-center text-foreground/50 text-sm mt-auto">
         <p>EdgeCase &copy; {new Date().getFullYear()}. Automated Quality & Security Testing.</p>
       </footer>
-    </div>
-  );
-}
-
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) {
-  return (
-    <div className="bg-card border border-border p-6 rounded-xl hover:border-primary/50 transition-colors group">
-      <div className="bg-background w-14 h-14 rounded-lg border border-border flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-        {icon}
-      </div>
-      <h3 className="font-semibold text-lg mb-2">{title}</h3>
-      <p className="text-sm text-foreground/70 leading-relaxed">{description}</p>
     </div>
   );
 }
