@@ -3,6 +3,7 @@ import { validateAndNormalizeUrl, isSafeIp } from "./url-validator";
 import { withBrowser } from "./browser";
 import { runAccessibilityAudit } from "./accessibility";
 import { runStressTests } from "./stress/index";
+import { runSecurityAudit } from "./security/index";
 import { promises as dns } from "dns";
 import * as ipaddr from "ipaddr.js";
 
@@ -100,6 +101,9 @@ export async function runFullScan(inputUrl: string): Promise<ScanResult> {
       const title = await page.title();
       const finalUrl = page.url();
 
+      // Run Passive Security Audit
+      const security = await runSecurityAudit(page, response);
+
       // Run Accessibility Audit
       const accessibility = await runAccessibilityAudit(page);
 
@@ -127,6 +131,7 @@ export async function runFullScan(inputUrl: string): Promise<ScanResult> {
           loadEventEnd: loadEventEnd,
           duration: loadEventEnd - startTime,
         },
+        security,
         accessibility,
         stress,
         screenshot,

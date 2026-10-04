@@ -264,8 +264,78 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Bottom Row: UI Stress Testing */}
-                <div className="grid grid-cols-1 gap-8 mt-8">
+                {/* Bottom Row: UI Stress Testing and Security Audit */}
+                <div className="grid lg:grid-cols-2 gap-8 mt-8">
+                  {/* Security Audit */}
+                  <div className="bg-background rounded-xl border border-border overflow-hidden">
+                    <div className="p-6 border-b border-border bg-card/50 flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                          <ShieldCheck className="w-5 h-5 text-blue-400" />
+                        </div>
+                        <h3 className="text-xl font-semibold">Security Audit</h3>
+                      </div>
+                      <div className="flex gap-4">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-red-400">{result.security?.totalFindings || 0}</div>
+                          <div className="text-xs text-foreground/50 uppercase font-semibold tracking-wider">Findings</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-blue-400">{result.security?.checksCompleted || 0} / {result.security?.totalChecks || 0}</div>
+                          <div className="text-xs text-foreground/50 uppercase font-semibold tracking-wider">Checks</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="p-0 max-h-[600px] overflow-y-auto custom-scrollbar">
+                      {result.security?.findings && result.security.findings.length > 0 ? (
+                        <div className="divide-y divide-border">
+                          {result.security.findings.map((f, i) => (
+                            <div key={i} className="p-6 hover:bg-secondary/20 transition-colors">
+                              <div className="flex items-start justify-between gap-4 mb-3">
+                                <h4 className="font-medium text-lg text-blue-300">
+                                  {f.checkName}
+                                </h4>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs px-2 py-1 rounded font-bold uppercase tracking-wider bg-secondary text-foreground/60">
+                                    {f.category}
+                                  </span>
+                                  <span className={`text-xs px-2 py-1 rounded font-bold uppercase tracking-wider ${
+                                    f.severity === 'critical' ? 'bg-red-600/20 text-red-500' :
+                                    f.severity === 'high' ? 'bg-red-500/20 text-red-400' : 
+                                    f.severity === 'medium' ? 'bg-orange-500/20 text-orange-400' :
+                                    f.severity === 'low' ? 'bg-yellow-500/20 text-yellow-400' :
+                                    'bg-blue-500/20 text-blue-400'
+                                  }`}>
+                                    {f.severity}
+                                  </span>
+                                </div>
+                              </div>
+                              <p className="text-foreground/80 mb-4">{f.description}</p>
+                              
+                              <div className="bg-secondary/50 rounded-lg p-4 font-mono text-sm border border-border">
+                                <div className="text-foreground/50 text-xs mb-2 uppercase tracking-wider font-sans font-semibold">Evidence</div>
+                                <code className="text-blue-300 break-all">{f.evidence}</code>
+                              </div>
+                              
+                              {f.remediation && (
+                                <div className="mt-4 bg-green-500/10 rounded-lg p-4 border border-green-500/20 text-sm text-green-200/80">
+                                  <strong>Remediation:</strong> {f.remediation}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-12 text-center text-foreground/50">
+                          <CheckCircle2 className="w-12 h-12 text-blue-500/50 mx-auto mb-4" />
+                          <p className="text-lg">No passive security issues detected.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* UI Stress Testing */}
                   <div className="bg-background rounded-xl border border-border overflow-hidden">
                     <div className="p-6 border-b border-border bg-card/50 flex justify-between items-center">
                       <div className="flex items-center gap-3">
@@ -350,6 +420,7 @@ export default function Home() {
                       )}
                     </div>
                   </div>
+                </div>
               </div>
             ) : (
               <div className="bg-background border border-border rounded-xl p-12 border-dashed flex flex-col items-center justify-center text-foreground/50 max-w-4xl mx-auto">

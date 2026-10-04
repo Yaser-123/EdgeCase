@@ -1,4 +1,5 @@
 import { StressResult } from "./stress/types";
+import { SecurityResult } from "./security/types";
 
 export interface ScanResult {
   status: "success" | "error";
@@ -13,6 +14,7 @@ export interface ScanResult {
   };
   accessibility?: AccessibilityResult;
   stress?: StressResult;
+  security?: SecurityResult;
   screenshot?: string; // base64 data URI
   error?: string;
 }
