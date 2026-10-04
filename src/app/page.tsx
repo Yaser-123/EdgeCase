@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { 
   Activity, 
   ShieldCheck, 
@@ -75,9 +76,20 @@ function RemediationBlock({ fixAssistant }: { fixAssistant?: any }) {
                 {copied ? "Copied!" : "Copy Prompt"}
               </button>
             </div>
-            <pre className="text-sm font-mono text-foreground/70 whitespace-pre-wrap overflow-x-auto custom-scrollbar">
-              {fixAssistant.prompt}
-            </pre>
+            <div className="text-sm text-foreground/80 overflow-x-auto custom-scrollbar mt-3">
+              <ReactMarkdown
+                components={{
+                  p: ({node, ...props}) => <p className="mb-4 last:mb-0" {...props} />,
+                  strong: ({node, ...props}) => <strong className="font-semibold text-blue-300" {...props} />,
+                  code: ({node, ...props}) => <code className="bg-secondary/50 px-1.5 py-0.5 rounded text-blue-200 break-all" {...props} />,
+                  ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-4 space-y-1.5" {...props} />,
+                  ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-4 space-y-1.5" {...props} />,
+                  li: ({node, ...props}) => <li className="pl-1" {...props} />
+                }}
+              >
+                {fixAssistant.prompt}
+              </ReactMarkdown>
+            </div>
           </div>
         </div>
       )}
